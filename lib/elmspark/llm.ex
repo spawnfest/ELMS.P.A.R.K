@@ -15,6 +15,11 @@ defmodule ElmSpark.LLM do
   # :user is us
 
   def chat_completions(msgs) do
+    #Chat.create_chat_completion(msgs, "gpt-4")
     Chat.create_chat_completion(msgs, "gpt-3.5-turbo")
+  end
+
+  def user_message(msg) do
+    %{role: "user", content: msg}
   end
 end
