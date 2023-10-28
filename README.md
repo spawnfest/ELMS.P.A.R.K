@@ -2,6 +2,12 @@
 
 # TODOs:
 
+- Elm Documentation Server
+  - Integrate
+
+- Offer the LLM a set of choices of modules that it thinks it will need.
+- Collect imports (Also need to match aliases, etc.)
+
 
 CORE LOOP
 

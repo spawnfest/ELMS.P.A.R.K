@@ -35,8 +35,10 @@ defmodule Elmspark.Elmspark do
 
   def gen_app(blueprint) do
     attempt_with_many(blueprint, [
+      # 0 retries for gen_imports
+      {&gen_imports/1, 0},
       # 3 retries for gen_model
-      {&gen_model/1, 0},
+      {&gen_model(blueprint, &1), 0},
       # 2 retries for gen_init
       {&gen_init/1, 0},
       # 5 retries for gen_msg
@@ -50,12 +52,21 @@ defmodule Elmspark.Elmspark do
     ])
   end
 
-  def gen_model(blueprint) do
+  def gen_imports(blueprint) do
+    available_modules = Elmspark.ElmDocumentationServer.available_modules()
     EllmProgram.new()
+    |> EllmProgram.set_stage(:choose_imports)
+    |> fetch_imports_from_llm(blueprint, available_modules)
+     |> dbg()
+  end
+
+  def gen_model(blueprint, ellm_program) do
+    ellm_program
     |> EllmProgram.set_stage(:add_model_alias)
     |> fetch_fields_from_llm(blueprint)
     |> convert_fields_to_elm_type_alias()
     |> compile_elm_program()
+    |> dbg()
   end
 
   def gen_init(ellm_program) do
@@ -113,6 +124,29 @@ defmodule Elmspark.Elmspark do
   def change_blueprint(blueprint, attrs) do
     blueprint
     |> Blueprint.changeset(attrs)
+  end
+
+  defp fetch_imports_from_llm(%EllmProgram{} = ellm_program, blueprint, available_modules) do
+    globally_available_imports =  ellm_program.global_imports
+    additional_possibilities = available_modules -- globally_available_imports
+    globally_available_system_msg = LLM.system_message("The following modules are always globally available: #{Enum.join(globally_available_imports, "@@")}")
+    additional_system_msg = LLM.system_message("The additional modules are #{Enum.join(additional_possibilities, "@@")}.")
+    msg = generate_imports(blueprint, &LLM.user_message/1)
+    res = LLM.chat_completions([globally_available_system_msg, additional_system_msg, msg])
+
+    case res do
+      {:ok, %{choices: [%{message: %{content: selected_imports}}]}} ->
+       imports = String.split(selected_imports, "@@") -- ellm_program.global_imports
+        |> MapSet.new()
+        |> MapSet.intersection(MapSet.new(available_modules))
+        |> MapSet.to_list()
+        |> dbg()
+
+        {:ok, %{ellm_program | imports: imports}}
+
+      {:error, e} ->
+        {:error, e}
+    end
   end
 
   defp fetch_fields_from_llm(%EllmProgram{} = ellm_program, blueprint) do
@@ -217,6 +251,24 @@ defmodule Elmspark.Elmspark do
       {:error, e} ->
         {:error, e}
     end
+  end
+
+  def generate_imports(
+        %{
+          title: title,
+          description: description,
+          works: works
+        },
+        present
+      ) do
+    message = """
+    Given the title: #{title}, the description: #{description}, and the user acceptance criteria #{works}, pick Modules from the Available Modules that you will need to build this project in Elm.
+
+    Return the Available modules that separted by "@@". Your response should look something like this:
+    "Module1@@Module2@@Module3"
+    """
+
+    present.(message)
   end
 
   def generate(
@@ -394,7 +446,7 @@ defmodule Elmspark.Elmspark do
   end
 
   defp compile_elm_program(%EllmProgram{} = ellm_program, opts \\ []) do
-    program_test = EllmProgram.to_string(ellm_program)
+    program_test = EllmProgram.to_code(ellm_program)
     output = Keyword.get(opts, :output, nil)
 
     if output do

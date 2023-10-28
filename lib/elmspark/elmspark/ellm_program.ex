@@ -9,8 +9,11 @@ defmodule Elmspark.Elmspark.EllmProgram do
     :update,
     :stage,
     :code,
-    :error
+    :error,
+    global_imports: ["Basics", "Html", "Html.Attributes", "Html.Events", "Maybe"]
   ]
+
+
 
   def new() do
     %__MODULE__{}
@@ -20,7 +23,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     Map.put(program, :stage, stage)
   end
 
-  def to_string(
+  def to_code(
         %__MODULE__{
           stage: :add_view_function,
           view: view,
@@ -62,7 +65,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_string(
+  def to_code(
         %__MODULE__{
           stage: :add_update_function,
           update: update,
@@ -99,7 +102,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_string(
+  def to_code(
         %__MODULE__{
           messages: messages,
           model_alias: model_alias,
@@ -138,7 +141,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_string(
+  def to_code(
         %__MODULE__{model_alias: model_alias, init: init, stage: :add_init_function} = _program
       ) do
     """
@@ -169,7 +172,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_string(%__MODULE__{stage: :add_model_alias} = _program) do
+  def to_code(%__MODULE__{stage: :add_model_alias} = _program) do
     """
     module Main exposing (main)
 
@@ -198,13 +201,13 @@ defmodule Elmspark.Elmspark.EllmProgram do
   end
 
 
-  def to_string(%__MODULE__{stage: :add_imports} = _program) do
+  def to_code(%__MODULE__{stage: :add_imports, imports: imports} = _program) do
     """
     module Main exposing (main)
 
     import Html exposing (Html)
     import Browser
-    #{imports}
+    #{imports_to_code(imports)}
 
     main : Program () () ()
     main =
@@ -225,5 +228,11 @@ defmodule Elmspark.Elmspark.EllmProgram do
     view _=
         Html.div [] []
     """
+  end
+
+  defp imports_to_code(imports) do
+    imports
+    |> Enum.map(& "import #{&1}")
+    |> Enum.join("\n")
   end
 end
