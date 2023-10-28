@@ -29,8 +29,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
         } =
           _program
       ) do
-    IO.inspect(view)
-
     """
     module Main exposing (main)
 
@@ -46,17 +44,19 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
     main : Program ()  Model Msg
     main =
-        Browser.sandbox { view = view
+        Browser.sandbox {
+        view = view
         , update = update
         , init = init
         }
 
     init : Model
-    init =
-        #{init}
+    init = #{init}
 
     update : Msg -> Model -> Model
     update msg model = #{update}
+
+
 
     #{view}
     """
@@ -90,8 +90,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         }
 
     init : Model
-    init =
-        #{init}
+    init = #{init}
 
     update : Msg -> Model -> Model
     update msg model = #{update}
@@ -123,8 +122,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         }
 
     init : Model
-    init =
-        #{init}
+    init = #{init}
 
     update : Msg -> Model -> Model
     update _ model =
@@ -153,8 +151,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         }
 
     init : Model
-    init =
-        #{init}
+    init = #{init}
 
     update : () -> Model -> Model
     update _ model =
@@ -166,9 +163,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_string(%__MODULE__{model_alias: model_alias, init: nil, stage: 2} = _program) do
-    IO.inspect("🤣")
-
+  def to_string(%__MODULE__{model_alias: model_alias, stage: 2} = _program) do
     """
     module Main exposing (main)
 

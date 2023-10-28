@@ -13,6 +13,7 @@ defmodule Elmspark.Application do
       {DNSCluster, query: Application.get_env(:elmspark, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Elmspark.PubSub},
       {Elmspark.Elmspark.ElmMakeServer, name: Elmspark.ElmMakeServer},
+      {Elmspark.Elmspark.SparkServer, name: Elmspark.Elmspark.SparkServer},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Elmspark.Finch},
       # Start a worker by calling: Elmspark.Worker.start_link(arg)

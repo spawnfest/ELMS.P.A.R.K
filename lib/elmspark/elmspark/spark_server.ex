@@ -18,6 +18,9 @@ defmodule Elmspark.Elmspark.SparkServer do
 
   def handle_call({:generate_app_from_blueprint, blueprint_id}, _from, state) do
     case generate_app_from_blueprint(blueprint_id) do
+      {:ok, task} ->
+        {:reply, {:ok, task}, state}
+
       {:ok, app} ->
         {:reply, {:ok, app}, state}
 
@@ -32,7 +35,7 @@ defmodule Elmspark.Elmspark.SparkServer do
         {:error, "Blueprint not found"}
 
       blueprint ->
-        Elmspark.gen_app(blueprint)
+        {:ok, Task.async(fn -> Elmspark.gen_app(blueprint) end)}
     end
   end
 end

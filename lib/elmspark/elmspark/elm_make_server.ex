@@ -51,11 +51,12 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
   def handle_call({:make_elm, contents}, _from, opts) do
     Logger.info("Making Elm")
     File.write("src/Main.elm", contents)
+    System.cmd("sh", ["-c", " elm-format src/Main.elm --yes"])
 
     # Setup the redirection of standard error
     # Run the elm make command using ports
     # args = ["make", "--report=json", "src/Main.elm"]
-    args = ["make", "src/Main.elm"]
+    args = ["make", "--report=json", "src/Main.elm"]
 
     with {:ok, blah} <- Rambo.run("elm", args) do
       Logger.info("Elm Make Run successful")

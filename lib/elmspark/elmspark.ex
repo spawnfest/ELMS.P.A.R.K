@@ -2,17 +2,66 @@ defmodule Elmspark.Elmspark do
   alias __MODULE__.EllmProgram
   alias ElmSpark.LLM
   alias Elmspark.Elmspark.ElmMakeServer
+  alias Elmspark.Elmspark.EllmProgram
   alias Elmspark.Elmspark.Blueprint
   alias Elmspark.Repo
 
+  require Logger
+
+  def attempt_with_many(value, fun_with_retry_list) when is_list(fun_with_retry_list) do
+    do_attempt_with_many(value, fun_with_retry_list, 0)
+  end
+
+  defp do_attempt_with_many(value, [], _attempt) do
+    {:ok, value}
+  end
+
+  defp do_attempt_with_many(_value, [{fun, _max_retries} = head | _rest], attempt)
+       when attempt > _max_retries do
+    {:error, {:max_retries_reached, fun}}
+  end
+
+  defp do_attempt_with_many(value, [{fun, max_retries} | rest], attempt)
+       when attempt <= max_retries do
+    case fun.(value) do
+      {:ok, result} ->
+        do_attempt_with_many(result, rest, 0)
+
+      {:error, _} ->
+        do_attempt_with_many(value, [{fun, max_retries} | rest], attempt + 1)
+    end
+  end
+
   def gen_app(blueprint) do
-    with {:ok, program} <- gen_model(blueprint),
-         {:ok, program_with_init} <- gen_init(program),
-         {:ok, program_msg_init} <- gen_msg(program_with_init),
+    attempt_with_many(blueprint, [
+      # 3 retries for gen_model
+      {&gen_model/1, 3},
+      # 2 retries for gen_init
+      {&gen_init/1, 2},
+      # 5 retries for gen_msg
+      {&gen_msg/1, 5},
+      # 3 retries for gen_update
+      {&gen_update/1, 3},
+      # 2 retries for gen_view
+      {&gen_view/1, 4},
+      # 1 retry for gen_js
+      {&gen_js/1, 1}
+    ])
+  end
+
+  def gen_app(blueprint) do
+    with {:ok, program} <- gen_model(blueprint) |> IO.inspect(label: "Generated model"),
+         {:ok, program_with_init} <- gen_init(program) |> IO.inspect(label: "Generated init"),
+         {:ok, program_msg_init} <-
+           gen_msg(program_with_init) |> IO.inspect(label: "Generated msg"),
          {:ok, program_msg_init_update} <- gen_update(program_msg_init),
          {:ok, complete_program} <- gen_view(program_msg_init_update),
          {:ok, generated_program} <- gen_js(complete_program) do
       {:ok, generated_program}
+    else
+      e ->
+        Logger.error("Error generating app: #{inspect(e)}")
+        {:error, e}
     end
   end
 
@@ -141,6 +190,9 @@ defmodule Elmspark.Elmspark do
 
     case res do
       {:ok, %{choices: [%{message: %{content: content}}]}} ->
+        IO.inspect(content, label: "content")
+        IO.inspect(generator_function, label: "generator_function")
+        IO.inspect(ellm_program, label: "ellm_program")
         Map.put(ellm_program, attribute_to_update, content)
 
       {:error, e} ->
@@ -164,6 +216,9 @@ defmodule Elmspark.Elmspark do
     [ "field1" : "field1sType"
     , "field2" : "field2sType"
     ]
+    DO NOT include the Msg in your response.
+    Only inlcude basic types like String, Int, Float, Bool, etc.
+    Don not rely on custom created types.
     """
 
     present.(message)
@@ -204,9 +259,8 @@ defmodule Elmspark.Elmspark do
 
     Then your response should look like this:
     ```
-    type Msg
-      = ChangeColor String
-      | ChangeSize Int
+    type Msg = ChangeColor String | ChangeSize Int
+    Keep it on one line.
     """
 
     present.(message)
@@ -308,12 +362,12 @@ defmodule Elmspark.Elmspark do
 
     if output do
       case ElmMakeServer.gen_js(program_test) do
-        {:ok, _output} -> %{ellm_program | code: program_test}
+        {:ok, _output} -> {:ok, %{ellm_program | code: program_test}}
         {:error, e} -> {:error, e}
       end
     else
       case ElmMakeServer.make_elm(program_test) do
-        {:ok, _output} -> %{ellm_program | code: program_test}
+        {:ok, _output} -> {:ok, %{ellm_program | code: program_test}}
         {:error, e} -> {:error, e}
       end
     end
