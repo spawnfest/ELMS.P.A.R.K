@@ -28,8 +28,10 @@ defmodule Elmspark.Elmspark do
       {:ok, result} ->
         do_attempt_with_many(result, rest, 0)
 
+      {:error, %EllmProgram{}= program} ->
+        do_attempt_with_many(program, [{fun, max_retries} | rest], attempt + 1)
       {:error, _} ->
-        do_attempt_with_many(value, [{fun, max_retries} | rest], attempt + 1)
+        do_attempt_with_many(value, [{fun, max_retries} | rest], attempt)
     end
   end
 
@@ -66,7 +68,7 @@ defmodule Elmspark.Elmspark do
     |> fetch_fields_from_llm(blueprint)
     |> convert_fields_to_elm_type_alias()
     |> compile_elm_program()
-    |> dbg()
+    |> respond_to_feedback_with_llm
   end
 
   def gen_init(ellm_program) do
@@ -74,6 +76,7 @@ defmodule Elmspark.Elmspark do
     |> EllmProgram.set_stage(:add_init_function)
     |> fetch_init_from_llm()
     |> compile_elm_program()
+    |> respond_to_feedback_with_llm
   end
 
   def gen_msg(ellm_program) do
@@ -81,6 +84,9 @@ defmodule Elmspark.Elmspark do
     |> EllmProgram.set_stage(:add_messages)
     |> fetch_messages_from_llm()
     |> compile_elm_program()
+    |> respond_to_feedback_with_llm
+
+
   end
 
   def gen_update(ellm_program) do
@@ -88,6 +94,7 @@ defmodule Elmspark.Elmspark do
     |> EllmProgram.set_stage(:add_update_function)
     |> fetch_update_from_llm()
     |> compile_elm_program()
+    |> respond_to_feedback_with_llm
   end
 
   def gen_view(ellm_program) do
@@ -95,6 +102,7 @@ defmodule Elmspark.Elmspark do
     |> EllmProgram.set_stage(:add_view_function)
     |> fetch_view_from_llm()
     |> compile_elm_program()
+    |> respond_to_feedback_with_llm
   end
 
   def gen_js(ellm_program) do
@@ -166,9 +174,9 @@ defmodule Elmspark.Elmspark do
     fetch_from_llm(ellm_program, &generate_update(&1, &2), :update)
   end
 
-  # def respond_to_feedback_with_llm({:ok, idk}) do
-  #   IO.inspect({:ok, idk})
-  # end
+   def respond_to_feedback_with_llm({:ok, idk}) do
+     {:ok, idk}
+   end
 
   # def respond_to_feedback_with_llm({:error, idk}) do
   #   # msg = generate_feedback(blueprint, &LLM.user_message/1)
@@ -176,18 +184,71 @@ defmodule Elmspark.Elmspark do
   #   IO.inspect(idk)
   # end
 
-  def respond_to_feedback_with_llm(%EllmProgram{} = ellm_program) do
+  def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_model_alias} = ellm_program}) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
     case res do
       {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
-        %{ellm_program | feedback: feedback}
-
+        %{ellm_program | model_alias: feedback}
+        |> compile_elm_program()
       {:error, e} ->
         {:error, e}
     end
   end
+  
+ def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_init_function} = ellm_program}) do
+    msg = generate_feedback(ellm_program, &LLM.user_message/1)
+    res = LLM.chat_completions([msg])
+
+    case res do
+      {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
+        %{ellm_program | init: feedback}
+        |> compile_elm_program()
+      {:error, e} ->
+        {:error, e}
+    end
+  end
+ def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_messages} = ellm_program}) do
+    msg = generate_feedback(ellm_program, &LLM.user_message/1)
+    res = LLM.chat_completions([msg])
+
+    case res do
+      {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
+        %{ellm_program | messages: feedback}
+        |> compile_elm_program()
+      {:error, e} ->
+        {:error, e}
+    end
+  end
+
+ def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_update_function} = ellm_program}) do
+    msg = generate_feedback(ellm_program, &LLM.user_message/1)
+    res = LLM.chat_completions([msg])
+
+    case res do
+      {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
+        %{ellm_program | update: feedback}
+        |> compile_elm_program()
+      {:error, e} ->
+        {:error, e}
+    end
+  end
+
+ def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_view_function} = ellm_program}) do
+    msg = generate_feedback(ellm_program, &LLM.user_message/1)
+    res = LLM.chat_completions([msg])
+
+    case res do
+      {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
+        %{ellm_program | view: feedback}
+        |> compile_elm_program()
+      {:error, e} ->
+        {:error, e}
+    end
+  end
+
+
 
   defp fetch_view_from_llm(ellm_program) do
     fetch_from_llm(ellm_program, &generate_view(&1, &2), :view)
@@ -289,7 +350,7 @@ defmodule Elmspark.Elmspark do
     ]
     DO NOT include the Msg in your response.
     Only inlcude basic types like String, Int, Float, Bool, etc.
-    Don not rely on custom created types.
+    DO NOT rely on custom created types.
     """
 
     present.(message)
@@ -343,17 +404,112 @@ defmodule Elmspark.Elmspark do
     #{ellm_program.error}
     Please provide a correction on how you would fix the error message
     This was your task
-    #{stage_task(ellm_program.stage)}
+    #{stage_task(ellm_program)}
 
     """
 
     present.(message)
   end
 
-  def stage_task(_blurp) do
-    "TODO"
-  end
+   def stage_task(%EllmProgram{stage: :add_model_alias} = program) do
+    message = """
+    Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
 
+    So for example if the fields given were:
+    ```
+      [ ("color", String)
+      , ("size", Int)
+      ]
+    ```
+
+    Then your response should look like this:
+    ```
+    type alias Model =
+      { color : String
+      , size : Int
+      }
+    """
+  end 
+  def stage_task(%EllmProgram{stage: :add_init_function} = program) do
+    message = """
+    Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
+
+    So for example if the fields given were:
+    ```
+      [ ("color", String)
+      , ("size", Int)
+      ]
+    ```
+
+    Then your response should look like this:
+    ```
+    type alias Model =
+      { color : String
+      , size : Int
+      }
+    """
+  end
+  def stage_task(%EllmProgram{stage: :add_messages} = program) do
+    message = """
+    Turn this list of messages: #{program.messages} into a Elm type alias called Msg. Each message should be on its own line.
+
+    So for example if the messages given were:
+    ```
+      [ ("ChangeColor", String)
+      , ("ChangeSize", Int)
+      ]
+    ```
+
+    Then your response should look like this:
+    ```
+    type Msg = ChangeColor String | ChangeSize Int
+    Keep it on one line.
+    """
+  end
+  
+  def stage_task(%EllmProgram{stage: :add_update_function} = program) do
+    message = """
+    Given the following model alias:
+    #{program.model_alias}
+    and the
+    #{program.messages}
+    Please generate the update function for the Elm Program.
+    Only respond with the expression that is the update function.
+    For example:
+    type alias Model = { name : String }
+    type Msg = ChangeName String
+    You would respond with:
+
+    update : Msg -> Model -> Model
+    update msg model =
+        case msg of
+            ChangeName name ->
+            { model | name = name }
+
+
+    """
+  end
+  def stage_task(%EllmProgram{stage: :add_view_function} = program) do
+    message = """
+    Given the following model alias:
+    #{program.model_alias}
+    and the
+    #{program.messages}
+    Please generate the view function for the Elm Program.
+    Only respond with the expression that is the view function.
+    For example:
+    type alias Model = { name : String }
+    type Msg = ChangeName String
+    You would respond with:
+
+    view : Model -> Html Msg
+    view model =
+        div []
+            [ input [ onInput ChangeName ] []
+            , div [] [ text model.name ]
+            ]
+    """
+  end
   def generate_init(
         ellm_program,
         present
@@ -462,23 +618,24 @@ defmodule Elmspark.Elmspark do
 
           {:ok, %{ellm_program | code: program_test}}
 
-        {:error, e} ->
+        {:error, e} -> 
           Logger.error(
             "Elm Compile Failed #{inspect(ellm_program)} Stage:#{inspect(ellm_program.stage)}"
           )
+            with {:ok, decoded} <- e |> Jason.decode() do
+             [hd_error | _] =  Map.get(decoded, "errors")
 
-          [hd_error | _errors] = e |> Jason.decode!() |> Map.get("errors")
-
-          decoded_errors =
+             decoded_error= 
             Enum.map(hd_error["problems"], fn problem ->
               %{title: problem["title"], message: problem["message"]}
             end)
             |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
-            |> dbg
+            |> dbg()
 
-          Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_errors})
+          Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error })
 
-          {:error, %{ellm_program | error: decoded_errors}}
+          {:error, %{ellm_program | error: decoded_error}}
+          end
       end
     end
   end
