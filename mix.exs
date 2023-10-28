@@ -44,6 +44,7 @@ defmodule Elmspark.MixProject do
       {:phoenix, "~> 1.7.9"},
       {:phoenix_ecto, "~> 4.4"},
       {:phoenix_html, "~> 3.3"},
+      {:rambo, "~> 0.3"},
       {:phoenix_live_dashboard, "~> 0.8.2"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 0.20.1"},
@@ -52,7 +53,7 @@ defmodule Elmspark.MixProject do
       {:swoosh, "~> 1.3"},
       {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
       {:telemetry_metrics, "~> 0.6"},
-      {:telemetry_poller, "~> 1.0"},
+      {:telemetry_poller, "~> 1.0"}
     ]
   end
 

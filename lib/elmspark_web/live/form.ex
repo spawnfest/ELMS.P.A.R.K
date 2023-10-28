@@ -2,6 +2,7 @@ defmodule ElmsparkWeb.FormLive do
   use ElmsparkWeb, :live_view
 
   alias Elmspark.Elmspark.Blueprint
+  alias Elmspark.Repo
 
   def mount(_params, _session, socket) do
     socket =
