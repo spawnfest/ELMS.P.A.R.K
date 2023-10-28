@@ -10,6 +10,7 @@
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
+<script src="/assets/main.js"></script>
   </head>
   <body class="bg-white antialiased">
     <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
@@ -54,5 +55,6 @@
       <% end %>
     </ul>
     <%= @inner_content %>
+<script>var app = Elm.Main.init();</script>
   </body>
 </html>

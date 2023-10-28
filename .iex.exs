@@ -1,5 +1,6 @@
 alias ElmSpark.LLM
 alias Elmspark.Elmspark.Blueprint
+alias Elmspark.Elmspark.ElmMakeServer
 alias ElmSpark.StubProgram.ModelStub
 
 

@@ -21,6 +21,7 @@ defmodule ElmsparkWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/render", PageController, :show
     live "/form", FormLive
   end
 

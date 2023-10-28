@@ -39,3 +39,11 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+import { Elm } from './main.js';
+
+// Get the div by ID where you want to embed your Elm app
+var elmDiv = document.getElementById('elmApp');
+
+if (elmDiv) {
+    Elm.Main.init({ node: elmDiv });
+}
