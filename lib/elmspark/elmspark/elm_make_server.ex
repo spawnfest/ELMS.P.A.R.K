@@ -38,8 +38,7 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     args = ["make", "--output=main.js", "src/Main.elm"]
 
     with {:ok, blah} <- Rambo.run("elm", args) do
-      Logger.info("Elm Make Run successful")
-      IO.inspect(blah)
+      Logger.info("Elm Make Run successful #{inspect(blah)}")
       {:reply, {:ok, blah}, opts}
     else
       {:error, %Rambo{err: error}} ->
@@ -49,7 +48,6 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
   end
 
   def handle_call({:make_elm, contents}, _from, opts) do
-    Logger.info("Making Elm")
     File.write("src/Main.elm", contents)
     System.cmd("sh", ["-c", " elm-format src/Main.elm --yes"])
 
@@ -59,7 +57,7 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     args = ["make", "--report=json", "src/Main.elm"]
 
     with {:ok, blah} <- Rambo.run("elm", args) do
-      Logger.info("Elm Make Run successful")
+      Logger.info("Elm Make Run successful #{inspect(blah)}")
       {:reply, {:ok, blah}, opts}
     else
       {:error, %Rambo{err: error}} ->

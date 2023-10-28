@@ -4,6 +4,7 @@ defmodule Elmspark.Elmspark do
   alias Elmspark.Elmspark.ElmMakeServer
   alias Elmspark.Elmspark.EllmProgram
   alias Elmspark.Elmspark.Blueprint
+  alias Elmspark.Elmspark.Events
   alias Elmspark.Repo
 
   require Logger
@@ -35,39 +36,23 @@ defmodule Elmspark.Elmspark do
   def gen_app(blueprint) do
     attempt_with_many(blueprint, [
       # 3 retries for gen_model
-      {&gen_model/1, 3},
+      {&gen_model/1, 0},
       # 2 retries for gen_init
-      {&gen_init/1, 2},
+      {&gen_init/1, 0},
       # 5 retries for gen_msg
-      {&gen_msg/1, 5},
+      {&gen_msg/1, 0},
       # 3 retries for gen_update
-      {&gen_update/1, 3},
+      {&gen_update/1, 0},
       # 2 retries for gen_view
-      {&gen_view/1, 4},
+      {&gen_view/1, 0},
       # 1 retry for gen_js
-      {&gen_js/1, 1}
+      {&gen_js/1, 0}
     ])
-  end
-
-  def gen_app(blueprint) do
-    with {:ok, program} <- gen_model(blueprint) |> IO.inspect(label: "Generated model"),
-         {:ok, program_with_init} <- gen_init(program) |> IO.inspect(label: "Generated init"),
-         {:ok, program_msg_init} <-
-           gen_msg(program_with_init) |> IO.inspect(label: "Generated msg"),
-         {:ok, program_msg_init_update} <- gen_update(program_msg_init),
-         {:ok, complete_program} <- gen_view(program_msg_init_update),
-         {:ok, generated_program} <- gen_js(complete_program) do
-      {:ok, generated_program}
-    else
-      e ->
-        Logger.error("Error generating app: #{inspect(e)}")
-        {:error, e}
-    end
   end
 
   def gen_model(blueprint) do
     EllmProgram.new()
-    |> EllmProgram.set_stage(1)
+    |> EllmProgram.set_stage(:add_model_alias)
     |> fetch_fields_from_llm(blueprint)
     |> convert_fields_to_elm_type_alias()
     |> compile_elm_program()
@@ -75,42 +60,46 @@ defmodule Elmspark.Elmspark do
 
   def gen_init(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(2)
+    |> EllmProgram.set_stage(:add_init_function)
     |> fetch_init_from_llm()
     |> compile_elm_program()
   end
 
   def gen_msg(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(3)
+    |> EllmProgram.set_stage(:add_messages)
     |> fetch_messages_from_llm()
     |> compile_elm_program()
   end
 
   def gen_update(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(4)
+    |> EllmProgram.set_stage(:add_update_function)
     |> fetch_update_from_llm()
     |> compile_elm_program()
   end
 
   def gen_view(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(5)
+    |> EllmProgram.set_stage(:add_view_function)
     |> fetch_view_from_llm()
     |> compile_elm_program()
   end
 
   def gen_js(ellm_program) do
-    ellm_program
-    |> EllmProgram.set_stage(6)
-    |> compile_elm_program(output: "js")
-
-    main_file = File.read!("main.js")
-    File.rm!("main.js")
-    random_file_name = "main-#{Ecto.UUID.generate()}.js"
-    path = Path.expand("./priv/static/assets/#{random_file_name}.js")
-    File.write!(path, main_file)
+    with {:ok, program} <-
+           ellm_program
+           |> compile_elm_program(output: "js") do
+      main_file = File.read!("main.js")
+      File.rm!("main.js")
+      random_file_name = "main.js"
+      path = Path.expand("./assets/js/main.js")
+      File.write!(path, main_file)
+      {:ok, program}
+    else
+      _ ->
+        {:error, "Could not compile Elm to JS"}
+    end
   end
 
   def get_blueprint(id), do: Repo.get(Blueprint, id)
@@ -141,6 +130,29 @@ defmodule Elmspark.Elmspark do
 
   defp fetch_update_from_llm(ellm_program) do
     fetch_from_llm(ellm_program, &generate_update(&1, &2), :update)
+  end
+
+  # def respond_to_feedback_with_llm({:ok, idk}) do
+  #   IO.inspect({:ok, idk})
+  # end
+
+  # def respond_to_feedback_with_llm({:error, idk}) do
+  #   # msg = generate_feedback(blueprint, &LLM.user_message/1)
+  #   # res = LLM.chat_completions([msg])
+  #   IO.inspect(idk)
+  # end
+
+  def respond_to_feedback_with_llm(%EllmProgram{} = ellm_program) do
+    msg = generate_feedback(ellm_program, &LLM.user_message/1)
+    res = LLM.chat_completions([msg])
+
+    case res do
+      {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
+        %{ellm_program | feedback: feedback}
+
+      {:error, e} ->
+        {:error, e}
+    end
   end
 
   defp fetch_view_from_llm(ellm_program) do
@@ -186,13 +198,20 @@ defmodule Elmspark.Elmspark do
 
   defp fetch_from_llm(ellm_program, generator_function, attribute_to_update) do
     msg = generator_function.(ellm_program, &LLM.user_message/1)
-    res = LLM.chat_completions([msg])
+
+    available_functions_msg =
+      """
+      You have access to the following Elm functions:
+      import Array exposing (Array, length, get)
+      -- length : Array a -> Int
+      -- get : Int -> Array a -> Maybe a
+      """
+      |> LLM.system_message()
+
+    res = LLM.chat_completions([available_functions_msg, msg])
 
     case res do
       {:ok, %{choices: [%{message: %{content: content}}]}} ->
-        IO.inspect(content, label: "content")
-        IO.inspect(generator_function, label: "generator_function")
-        IO.inspect(ellm_program, label: "ellm_program")
         Map.put(ellm_program, attribute_to_update, content)
 
       {:error, e} ->
@@ -266,6 +285,23 @@ defmodule Elmspark.Elmspark do
     present.(message)
   end
 
+  def generate_feedback(ellm_program, present) do
+    message = """
+    Given this elm error message:
+    #{ellm_program.error}
+    Please provide a correction on how you would fix the error message
+    This was your task
+    #{stage_task(ellm_program.stage)}
+
+    """
+
+    present.(message)
+  end
+
+  def stage_task(_blurp) do
+    "TODO"
+  end
+
   def generate_init(
         ellm_program,
         present
@@ -320,12 +356,13 @@ defmodule Elmspark.Elmspark do
     type Msg = ChangeName String
     You would respond with:
 
-    case msg of
-        ChangeName name ->
-        { model | name = name }
+    update : Msg -> Model -> Model
+    update msg model =
+        case msg of
+            ChangeName name ->
+            { model | name = name }
 
 
-    Do Not include the type alias or the type Msg in your response.
     """
 
     present.(message)
@@ -367,8 +404,29 @@ defmodule Elmspark.Elmspark do
       end
     else
       case ElmMakeServer.make_elm(program_test) do
-        {:ok, _output} -> {:ok, %{ellm_program | code: program_test}}
-        {:error, e} -> {:error, e}
+        {:ok, _output} ->
+          Logger.info("Successfully compiled Elm program Stage:#{inspect(ellm_program.stage)}")
+          Events.broadcast("elm_compiled", %{ellm_program | code: program_test})
+
+          {:ok, %{ellm_program | code: program_test}}
+
+        {:error, e} ->
+          Logger.error(
+            "Elm Compile Failed #{inspect(ellm_program)} Stage:#{inspect(ellm_program.stage)}"
+          )
+
+          [hd_error | _errors] = e |> Jason.decode!() |> Map.get("errors")
+
+          decoded_errors =
+            Enum.map(hd_error["problems"], fn problem ->
+              %{title: problem["title"], message: problem["message"]}
+            end)
+            |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
+            |> dbg
+
+          Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_errors})
+
+          {:error, %{ellm_program | error: decoded_errors}}
       end
     end
   end

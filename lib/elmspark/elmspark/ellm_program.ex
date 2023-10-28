@@ -1,5 +1,6 @@
 defmodule Elmspark.Elmspark.EllmProgram do
   defstruct [
+    :imports,
     :model_fields,
     :model_alias,
     :view,
@@ -7,7 +8,8 @@ defmodule Elmspark.Elmspark.EllmProgram do
     :messages,
     :update,
     :stage,
-    :code
+    :code,
+    :error
   ]
 
   def new() do
@@ -20,7 +22,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
   def to_string(
         %__MODULE__{
-          stage: 6,
+          stage: :add_view_function,
           view: view,
           update: update,
           model_alias: model_alias,
@@ -29,13 +31,15 @@ defmodule Elmspark.Elmspark.EllmProgram do
         } =
           _program
       ) do
+    init = String.replace(init, "\n", "")
+
     """
     module Main exposing (main)
 
-    import Html exposing (Html)
     import Html exposing (..)
     import Html.Attributes exposing (..)
     import Html.Events exposing (..)
+    import Array exposing (Array, length, get)
     import Browser
 
     #{model_alias}
@@ -44,8 +48,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
     main : Program ()  Model Msg
     main =
-        Browser.sandbox {
-        view = view
+        Browser.sandbox { view = view
         , update = update
         , init = init
         }
@@ -53,10 +56,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     init : Model
     init = #{init}
 
-    update : Msg -> Model -> Model
-    update msg model = #{update}
-
-
+    #{update}
 
     #{view}
     """
@@ -64,13 +64,12 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
   def to_string(
         %__MODULE__{
-          stage: 5,
+          stage: :add_update_function,
           update: update,
           model_alias: model_alias,
           init: init,
           messages: messages
-        } =
-          _program
+        } = _program
       ) do
     """
     module Main exposing (main)
@@ -92,8 +91,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     init : Model
     init = #{init}
 
-    update : Msg -> Model -> Model
-    update msg model = #{update}
+    #{update}
 
     view : Model -> Html Msg
     view _=
@@ -102,7 +100,12 @@ defmodule Elmspark.Elmspark.EllmProgram do
   end
 
   def to_string(
-        %__MODULE__{stage: 4, model_alias: model_alias, init: init, messages: messages} = _program
+        %__MODULE__{
+          messages: messages,
+          model_alias: model_alias,
+          init: init,
+          stage: :add_messages
+        } = _program
       ) do
     """
     module Main exposing (main)
@@ -112,9 +115,10 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
     #{model_alias}
 
+
     #{messages}
 
-    main : Program ()  Model Msg
+    main : Program () Model ()
     main =
         Browser.sandbox { view = view
         , update = update
@@ -124,17 +128,19 @@ defmodule Elmspark.Elmspark.EllmProgram do
     init : Model
     init = #{init}
 
-    update : Msg -> Model -> Model
+    update : () -> Model -> Model
     update _ model =
         model
 
-    view : Model -> Html Msg
+    view : Model -> Html ()
     view _=
         Html.div [] []
     """
   end
 
-  def to_string(%__MODULE__{model_alias: model_alias, init: init, stage: 3} = _program) do
+  def to_string(
+        %__MODULE__{model_alias: model_alias, init: init, stage: :add_init_function} = _program
+      ) do
     """
     module Main exposing (main)
 
@@ -163,42 +169,42 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_string(%__MODULE__{model_alias: model_alias, stage: 2} = _program) do
+  def to_string(%__MODULE__{stage: :add_model_alias} = _program) do
     """
     module Main exposing (main)
 
     import Html exposing (Html)
     import Browser
 
-    #{model_alias}
-
-    main : Program () Model ()
+    main : Program () () ()
     main =
         Browser.sandbox { view = view
         , update = update
         , init = init
         }
 
-    init : Model
+    init : ()
     init =
-        Debug.todo "init"
+        ()
 
-    update : () -> Model -> Model
+    update : () -> () -> ()
     update _ model =
         model
 
-    view : Model -> Html ()
+    view : () -> Html ()
     view _=
         Html.div [] []
     """
   end
 
-  def to_string(%__MODULE__{stage: 1} = _program) do
+
+  def to_string(%__MODULE__{stage: :add_imports} = _program) do
     """
     module Main exposing (main)
 
     import Html exposing (Html)
     import Browser
+    #{imports}
 
     main : Program () () ()
     main =
