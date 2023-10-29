@@ -34,8 +34,8 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
   def handle_continue(:initialize_elm_projects, opts) do
     Logger.info("Starting Elm Make Server")
 
-    if not File.dir?("projects") do
-      :ok = File.mkdir("projects")
+    if not File.dir?("_projects") do
+      :ok = File.mkdir("_projects")
     end
 
     {:noreply, opts}
@@ -136,7 +136,7 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
   end
 
   defp working_directory(blueprint_id, p \\ []) do
-    ["projects", blueprint_id]
+    ["_projects", blueprint_id]
     |> Enum.concat(p)
     |> Path.join()
   end

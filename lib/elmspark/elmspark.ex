@@ -1,5 +1,4 @@
 defmodule Elmspark.Elmspark do
-  alias ExOpenAI.Components.Model
   alias __MODULE__.EllmProgram
   alias ElmSpark.LLM
   alias Elmspark.Elmspark.ElmMakeServer
@@ -21,17 +20,17 @@ defmodule Elmspark.Elmspark do
   # TODO: fix the infinte errors.
   defp do_attempt_with_many(
          _value,
-         [{fun, _max_retries} = head | _rest],
-         {feedback_attempt, failures}
+         [{fun, max_retries} = _head | _rest],
+         {feedback_attempt, _failures}
        )
-       when feedback_attempt > _max_retries do
+       when feedback_attempt > max_retries do
     {:error, {:max_retries_reached, fun}}
   end
 
   defp do_attempt_with_many(
          _value,
-         [{fun, _max_retries} = head | _rest],
-         {feedback_attempt, failures}
+         [{fun, _max_retries} = _head | _rest],
+         {_feedback_attempt, failures}
        )
        when failures > 3 do
     {:error, {:max_failures_reached, fun}}
@@ -282,8 +281,8 @@ defmodule Elmspark.Elmspark do
     fetch_from_llm(ellm_program, &generate_update(&1, &2), :update)
   end
 
-  def respond_to_feedback_with_llm({:ok, _ok}) do
-    {:ok, _ok}
+  def respond_to_feedback_with_llm({:ok, ok}) do
+    {:ok, ok}
   end
 
   def respond_to_feedback_with_llm(
@@ -377,14 +376,6 @@ defmodule Elmspark.Elmspark do
     fetch_from_llm(ellm_program, &generate_messages(&1, &2), :messages)
   end
 
-  defp convert_messages_to_elm_type_alias(%EllmProgram{messages: messages} = ellm_program) do
-    fetch_from_llm(
-      ellm_program,
-      fn _ -> generate_msg_alias(messages, &LLM.user_message/1) end,
-      :msg
-    )
-  end
-
   defp convert_fields_to_elm_type_alias(%EllmProgram{model_fields: fields} = ellm_program) do
     msg = generate_type_alias(fields, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
@@ -396,14 +387,6 @@ defmodule Elmspark.Elmspark do
       {:error, e} ->
         {:error, e}
     end
-  end
-
-  defp convert_fields_to_elm_type_alias(%EllmProgram{model_fields: fields} = ellm_program) do
-    fetch_from_llm(
-      ellm_program,
-      fn _ -> generate_type_alias(fields, &LLM.user_message/1) end,
-      :model_alias
-    )
   end
 
   defp fetch_from_llm(ellm_program, generator_function, attribute_to_update) do
@@ -528,7 +511,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def stage_task(%EllmProgram{stage: "add_model_alias"} = program) do
-    message = """
+    """
     Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
 
     So for example if the fields given were:
@@ -548,7 +531,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def stage_task(%EllmProgram{stage: "add_init_function"} = program) do
-    message = """
+    """
     Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
 
     So for example if the fields given were:
@@ -568,7 +551,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def stage_task(%EllmProgram{stage: "add_messages"} = program) do
-    message = """
+    """
     Turn this list of messages: #{program.messages} into a Elm type alias called Msg. Each message should be on its own line.
 
     So for example if the messages given were:
@@ -586,7 +569,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def stage_task(%EllmProgram{stage: "add_update_function"} = program) do
-    message = """
+    """
     Given the following model alias:
     #{program.model_alias}
     and the
@@ -609,7 +592,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def stage_task(%EllmProgram{stage: "add_view_function"} = program) do
-    message = """
+    """
     Given the following model alias:
     #{program.model_alias}
     and the
@@ -733,7 +716,7 @@ defmodule Elmspark.Elmspark do
       end
     else
       case ElmMakeServer.make_elm(blueprint_id, program_test) do
-        {:ok, output} ->
+        {:ok, _output} ->
           Logger.info("Successfully compiled Elm program Stage:#{inspect(ellm_program.stage)}")
 
           {:ok, %{ellm_program | code: program_test}}

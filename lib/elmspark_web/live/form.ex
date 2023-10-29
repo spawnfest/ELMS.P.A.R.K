@@ -93,7 +93,7 @@ defmodule ElmsparkWeb.FormLive do
   end
 
   def handle_event("build_blueprint", %{"id" => id}, socket) do
-    with {:ok, {task, project_id}} <- SparkServer.generate_app(id) do
+    with {:ok, {_task, project_id}} <- SparkServer.generate_app(id) do
       {:noreply, redirect(socket, to: "/programs/#{project_id}")}
     else
       _ ->
@@ -131,7 +131,7 @@ defmodule ElmsparkWeb.FormLive do
     {:noreply, socket}
   end
 
-  defp release_directory(blueprint_id, p \\ []) do
+  defp release_directory(blueprint_id, p) do
     ["priv", "static", "assets", blueprint_id]
     |> Enum.concat(p)
     |> Path.join()

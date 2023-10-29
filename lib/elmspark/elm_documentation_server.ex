@@ -14,7 +14,6 @@ defmodule Elmspark.ElmDocumentationServer do
 
   # SERVER
 
-  @impl true
   def start_link(opts) do
     Logger.info("hitting start link")
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -26,14 +25,14 @@ defmodule Elmspark.ElmDocumentationServer do
   end
 
   @impl true
-  def handle_continue(:load_elm_documentation, opts) do
+  def handle_continue(:load_elm_documentation, _opts) do
     Logger.info("Loading elm documentation")
     module_documentation = load_elm_documentation()
     {:noreply, module_documentation}
   end
 
   def load_elm_documentation() do
-    renames = fn %{values: values, comment: comment} = data ->
+    renames = fn %{values: values, comment: comment} ->
       %{
         functions:
           Enum.map(values, fn %{comment: comment, name: name, type: type} ->

@@ -37,51 +37,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
           class="my-3 p-4 bg-gray-700 rounded hover:bg-gray-600 transition duration-200 ease-in-out cursor-pointer"
           phx-click="select"
           phx-value-id={program.id}
-        >
-          <div class="flex justify-between items-center">
-            <span class="font-medium text-gray-400"><%= program.stage %></span>
-            <div :if={program.error} class="text-red-600 flex items-center">
-              <.icon name="hero-exclamation-circle" class="ml-1 h-4 w-4 animate-spin" />
-            </div>
-          </div>
-        </li>
-      </ul>
-    </div>
-    """
-  end
-
-  defp program_viewer(assigns) do
-    ~H"""
-    <div class="flex-1 bg-gray-800 p-6 rounded-lg shadow-lg">
-      <h2 class="text-xl font-semibold mb-4 text-gray-300">Program Viewer</h2>
-      <div class="bg-gray-700 p-4 whitespace-pre rounded">
-        <pre><code class="language-elm text-gray-300"><%= @html %></code></pre>
-      </div>
-    </div>
-    """
-  end
-
-  defp program_list(assigns) do
-    ~H"""
-    <div class="flex-none bg-gray-800 p-8 rounded-lg shadow-xl mr-8">
-      <h1 class="text-2xl font-bold mb-2 text-gray-200">Project: <%= @project.blueprint.title %></h1>
-      <h2 class="text-xl font-semibold mb-6 text-gray-300">Programs</h2>
-
-      <button
-        phx-click="retry"
-        phx-value-id={@project.id}
-        class="bg-blue-600 text-white px-4 py-2 rounded shadow mb-4 hover:bg-blue-700 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-      >
-        Retry
-      </button>
-
-      <ul id="events" phx-update="stream">
-        <li
-          :for={{dom_id, program} <- @streams.programs}
-          }
-          class="my-3 p-4 bg-gray-700 rounded hover:bg-gray-600 transition duration-200 ease-in-out cursor-pointer"
-          phx-click="select"
-          phx-value-id={program.id}
+          id={dom_id}
         >
           <div class="flex justify-between items-center">
             <span class="font-medium text-gray-400"><%= program.stage %></span>
@@ -137,10 +93,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
     end
   end
 
-  def handle_info({event_name, payload}, socket) do
-    IO.inspect({event_name, payload}, label: "Event")
-    event = %{id: Ecto.UUID.generate(), name: event_name, payload: payload}
-
+  def handle_info({_event_name, payload}, socket) do
     {:noreply,
      socket |> assign(html: EllmProgram.to_code(payload)) |> stream_insert(:programs, payload)}
   end
