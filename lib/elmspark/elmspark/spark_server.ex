@@ -2,8 +2,6 @@ defmodule Elmspark.Elmspark.SparkServer do
   use GenServer
   require Logger
 
-  alias Elmspark.Elmspark
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -30,14 +28,15 @@ defmodule Elmspark.Elmspark.SparkServer do
   end
 
   def generate_app_from_blueprint(blueprint_id) do
-    case Elmspark.get_blueprint(blueprint_id) do
+    case Elmspark.Elmspark.get_blueprint(blueprint_id) do
       nil ->
         {:error, "Blueprint not found"}
 
       blueprint ->
         # TODO: directly calling, and can throw errors.
-        Elmspark.ElmMakeServer.new_project(blueprint.id)
-        {:ok, Task.async(fn -> Elmspark.gen_app(blueprint) end)}
+        {:ok, project} = Elmspark.Projects.create_project(%{blueprint_id: blueprint_id})
+        Elmspark.Elmspark.ElmMakeServer.new_project(project.id, blueprint.id)
+        {:ok, Task.async(fn -> Elmspark.Elmspark.gen_app(project.id, blueprint) end)}
     end
   end
 

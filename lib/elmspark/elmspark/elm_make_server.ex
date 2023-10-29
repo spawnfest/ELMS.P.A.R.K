@@ -4,9 +4,13 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
 
   # CLIENT
 
-  def new_project(blueprint_id) do
+  def new_project(project_id, blueprint_id) do
     # TODO: Don't allow name collisions
-    GenServer.call(__MODULE__, {:new_project, blueprint_id})
+    GenServer.call(__MODULE__, {:new_project, project_id, blueprint_id})
+  end
+
+  def get_project(project_id) do
+    GenServer.call(__MODULE__, {:get_project, project_id})
   end
 
   def make_elm(blueprint_id, contents) do
@@ -37,9 +41,29 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     {:noreply, opts}
   end
 
-  def handle_call({:new_project, blueprint_id}, _from, opts) do
+  def handle_call({:new_project, project_id, blueprint_id}, _from, opts) do
     Logger.info("Creating a new Project for Blueprint #{blueprint_id}")
-    working_dir = working_directory(blueprint_id)
+    working_dir = working_directory(project_id)
+
+    case File.mkdir(working_dir) do
+      :ok ->
+        System.cmd("sh", ["-c", "echo 'Y' | elm init"], cd: working_dir)
+        {:reply, {:ok, working_dir}, opts}
+
+      {:error, e} ->
+        Logger.error("Error creating new project: #{e}")
+        {:reply, {:error, e}, opts}
+    end
+  end
+
+  def handle_call({:get_project, project_id}, _from, opts) do
+    Logger.info("Get Project for Blueprint #{project_id}")
+    working_dir = working_directory(project_id)
+
+    if File.dir?(working_dir) do
+    else
+      {:reply, {:error, :project_not_found}, opts}
+    end
 
     case File.mkdir(working_dir) do
       :ok ->
@@ -57,16 +81,18 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     working_dir = working_directory(blueprint_id)
     path = working_directory(blueprint_id, ["src", "Main.elm"])
     File.write(path, contents)
-    #args = ["make", "--output=main.js", "src/Main.elm"]
+    # args = ["make", "--output=main.js", "src/Main.elm"]
     args = ["make", "src/Main.elm"]
 
     with {:ok, blah} <- Rambo.run("elm", args, cd: working_dir) do
       Logger.info("Gen JS Run successful #{inspect(blah)}")
       output_path = working_directory(blueprint_id, ["index.html"])
       release_dir = release_directory(blueprint_id)
+
       if not File.dir?(release_dir) do
         :ok = File.mkdir(release_dir)
       end
+
       release_path = release_directory(blueprint_id, ["index.html"])
 
       case File.cp(output_path, release_path) do
