@@ -81,8 +81,10 @@ defmodule ElmsparkWeb.ProgramViewerLive do
   end
 
   def handle_event("select", %{"id" => id}, socket) do
-    program = Enum.find(socket.assigns.programs, fn p -> p.id == id end)
-    {:noreply, socket |> assign(html: EllmProgram.to_code(program))}
+    case Enum.find(socket.assigns.programs, fn p -> p.id == id end) do
+      nil -> {:noreply, socket}
+      program -> {:noreply, socket |> assign(html: EllmProgram.to_code(program))}
+    end
   end
 
   def handle_event("retry", %{"id" => id}, socket) do
@@ -94,7 +96,14 @@ defmodule ElmsparkWeb.ProgramViewerLive do
   end
 
   def handle_info({_event_name, payload}, socket) do
-    {:noreply,
-     socket |> assign(html: EllmProgram.to_code(payload)) |> stream_insert(:programs, payload)}
+    programs = Projects.get_programs(socket.assigns.project_id)
+
+    socket =
+      socket
+      |> assign(:programs, programs)
+      |> stream_insert(:programs, payload)
+      |> assign(html: EllmProgram.to_code(payload))
+
+    {:noreply, socket}
   end
 end

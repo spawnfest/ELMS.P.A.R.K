@@ -86,9 +86,10 @@ defmodule Elmspark.Elmspark do
     |> fetch_imports_from_llm(blueprint, available_modules)
     |> case do
       {:ok, ellm_program} ->
-        ellm_program
-        |> EllmProgram.changeset(%{})
-        |> Repo.insert()
+        {:ok, ellm_program} =
+          ellm_program
+          |> EllmProgram.changeset(%{})
+          |> Repo.insert()
 
         Events.broadcast("gen_imports", ellm_program)
         {:ok, ellm_program}
@@ -109,9 +110,10 @@ defmodule Elmspark.Elmspark do
     |> respond_to_feedback_with_llm
     |> case do
       {:ok, ellm_program} ->
-        ellm_program
-        |> EllmProgram.changeset(%{})
-        |> Repo.insert()
+        {:ok, ellm_program} =
+          ellm_program
+          |> EllmProgram.changeset(%{})
+          |> Repo.insert()
 
         Events.broadcast("gen_model", ellm_program)
         {:ok, ellm_program}
@@ -131,9 +133,10 @@ defmodule Elmspark.Elmspark do
     |> respond_to_feedback_with_llm
     |> case do
       {:ok, ellm_program} ->
-        ellm_program
-        |> EllmProgram.changeset(%{})
-        |> Repo.insert()
+        {:ok, ellm_program} =
+          ellm_program
+          |> EllmProgram.changeset(%{})
+          |> Repo.insert()
 
         Events.broadcast("gen_init", ellm_program)
         {:ok, ellm_program}
@@ -153,9 +156,10 @@ defmodule Elmspark.Elmspark do
     |> respond_to_feedback_with_llm
     |> case do
       {:ok, ellm_program} ->
-        ellm_program
-        |> EllmProgram.changeset(%{})
-        |> Repo.insert()
+        {:ok, ellm_program} =
+          ellm_program
+          |> EllmProgram.changeset(%{})
+          |> Repo.insert()
 
         Events.broadcast("gen_msg", ellm_program)
         {:ok, ellm_program}
@@ -175,9 +179,10 @@ defmodule Elmspark.Elmspark do
     |> respond_to_feedback_with_llm
     |> case do
       {:ok, ellm_program} ->
-        ellm_program
-        |> EllmProgram.changeset(%{})
-        |> Repo.insert()
+        {:ok, ellm_program} =
+          ellm_program
+          |> EllmProgram.changeset(%{})
+          |> Repo.insert()
 
         Events.broadcast("gen_update", ellm_program)
         {:ok, ellm_program}
@@ -197,9 +202,10 @@ defmodule Elmspark.Elmspark do
     |> respond_to_feedback_with_llm
     |> case do
       {:ok, ellm_program} ->
-        ellm_program
-        |> EllmProgram.changeset(%{})
-        |> Repo.insert()
+        {:ok, ellm_program} =
+          ellm_program
+          |> EllmProgram.changeset(%{})
+          |> Repo.insert()
 
         Events.broadcast("gen_view", ellm_program)
         {:ok, ellm_program}
