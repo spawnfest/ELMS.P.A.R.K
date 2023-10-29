@@ -3,6 +3,7 @@ defmodule Elmspark.Elmspark.Events do
 
   def broadcast(event, payload) do
     PubSub.broadcast(Elmspark.PubSub, "events", {event, payload})
+    payload
   end
 
   def subscribe() do

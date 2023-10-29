@@ -42,7 +42,12 @@ defmodule Elmspark.Elmspark.SparkServer do
     end
   end
 
-  def handle_info({ref, {:error, {:max_retries_reached, _fun}}}, state) do
+  def handle_info({_ref, {:ok, program}}, state) do
+    Logger.info("Program generated: #{program.id}")
+    {:noreply, state}
+  end
+
+  def handle_info({_ref, {:error, {:max_retries_reached, _fun}}}, state) do
     {:noreply, state}
   end
 

@@ -19,26 +19,46 @@ defmodule Elmspark.Elmspark do
   end
 
   # TODO: fix the infinte errors.
-  defp do_attempt_with_many(_value, [{fun, _max_retries} = head | _rest], attempt)
-       when attempt > _max_retries do
+  defp do_attempt_with_many(
+         _value,
+         [{fun, _max_retries} = head | _rest],
+         {feedback_attempt, failures}
+       )
+       when feedback_attempt > _max_retries do
     {:error, {:max_retries_reached, fun}}
   end
 
-  defp do_attempt_with_many(value, [{fun, max_retries} | rest], attempt)
+  defp do_attempt_with_many(
+         _value,
+         [{fun, _max_retries} = head | _rest],
+         {feedback_attempt, failures}
+       )
+       when failures > 3 do
+    {:error, {:max_failures_reached, fun}}
+  end
+
+  defp do_attempt_with_many(value, [{fun, max_retries} | rest], {feedback_attempt, failures})
        when attempt <= max_retries do
     case fun.(value) do
       {:ok, result} ->
-        do_attempt_with_many(result, rest, 0)
+        do_attempt_with_many(result, rest, {0, 0})
 
       {:error, %EllmProgram{} = program} ->
-        do_attempt_with_many(program, [{fun, max_retries} | rest], attempt + 1)
+        do_attempt_with_many(
+          program,
+          [{fun, max_retries} | rest],
+          {feedback_attempt + 1, failures}
+        )
 
-      {:error, _} ->
-        do_attempt_with_many(value, [{fun, max_retries} | rest], attempt)
+      {:error, e} ->
+        Logger.error("Error in attempt_with_many: #{inspect(e)}")
+        do_attempt_with_many(value, [{fun, max_retries} | rest], {feedback_attempt, failures + 1})
     end
   end
 
   def gen_app(project_id, blueprint) do
+    Logger.info("Generating app for project #{project_id}")
+
     attempt_with_many(project_id, [
       # 0 retries for gen_imports
       {&gen_imports(blueprint, &1), 0},
@@ -59,6 +79,7 @@ defmodule Elmspark.Elmspark do
 
   def gen_imports(blueprint, project_id) do
     available_modules = Elmspark.ElmDocumentationServer.available_modules()
+    Logger.info("Generating imports for project #{project_id}")
 
     project_id
     |> EllmProgram.new()
@@ -70,12 +91,17 @@ defmodule Elmspark.Elmspark do
         |> EllmProgram.changeset(%{})
         |> Repo.insert()
 
+        Events.broadcast("gen_imports", ellm_program)
+        {:ok, ellm_program}
+
       error ->
         error
     end
   end
 
   def gen_model(blueprint, ellm_program) do
+    Logger.info("Generating model for project #{ellm_program.project_id}")
+
     ellm_program
     |> EllmProgram.set_stage("add_model_alias")
     |> fetch_fields_from_llm(blueprint)
@@ -88,12 +114,17 @@ defmodule Elmspark.Elmspark do
         |> EllmProgram.changeset(%{})
         |> Repo.insert()
 
+        Events.broadcast("gen_model", ellm_program)
+        {:ok, ellm_program}
+
       error ->
         error
     end
   end
 
   def gen_init(ellm_program) do
+    Logger.info("Generating init for project #{ellm_program.project_id}")
+
     ellm_program
     |> EllmProgram.set_stage("add_init_function")
     |> fetch_init_from_llm()
@@ -105,12 +136,17 @@ defmodule Elmspark.Elmspark do
         |> EllmProgram.changeset(%{})
         |> Repo.insert()
 
+        Events.broadcast("gen_init", ellm_program)
+        {:ok, ellm_program}
+
       error ->
         error
     end
   end
 
   def gen_msg(ellm_program) do
+    Logger.info("Generating msg for project #{ellm_program.project_id}")
+
     ellm_program
     |> EllmProgram.set_stage("add_messages")
     |> fetch_messages_from_llm()
@@ -122,12 +158,17 @@ defmodule Elmspark.Elmspark do
         |> EllmProgram.changeset(%{})
         |> Repo.insert()
 
+        Events.broadcast("gen_msg", ellm_program)
+        {:ok, ellm_program}
+
       error ->
         error
     end
   end
 
   def gen_update(ellm_program) do
+    Logger.info("Generating update for project #{ellm_program.project_id}")
+
     ellm_program
     |> EllmProgram.set_stage("add_update_function")
     |> fetch_update_from_llm()
@@ -139,12 +180,17 @@ defmodule Elmspark.Elmspark do
         |> EllmProgram.changeset(%{})
         |> Repo.insert()
 
+        Events.broadcast("gen_update", ellm_program)
+        {:ok, ellm_program}
+
       error ->
         error
     end
   end
 
   def gen_view(ellm_program) do
+    Logger.info("Generating view for project #{ellm_program.project_id}")
+
     ellm_program
     |> EllmProgram.set_stage("add_view_function")
     |> fetch_view_from_llm()
@@ -155,6 +201,9 @@ defmodule Elmspark.Elmspark do
         ellm_program
         |> EllmProgram.changeset(%{})
         |> Repo.insert()
+
+        Events.broadcast("gen_view", ellm_program)
+        {:ok, ellm_program}
 
       error ->
         error
@@ -233,15 +282,9 @@ defmodule Elmspark.Elmspark do
     fetch_from_llm(ellm_program, &generate_update(&1, &2), :update)
   end
 
-  def respond_to_feedback_with_llm({:ok, idk}) do
-    {:ok, idk}
+  def respond_to_feedback_with_llm({:ok, _ok}) do
+    {:ok, _ok}
   end
-
-  # def respond_to_feedback_with_llm({:error, idk}) do
-  #   # msg = generate_feedback(blueprint, &LLM.user_message/1)
-  #   # res = LLM.chat_completions([msg])
-  #   IO.inspect(idk)
-  # end
 
   def respond_to_feedback_with_llm(
         {:error, %EllmProgram{stage: "add_model_alias"} = ellm_program}
@@ -690,9 +733,8 @@ defmodule Elmspark.Elmspark do
       end
     else
       case ElmMakeServer.make_elm(blueprint_id, program_test) do
-        {:ok, _output} ->
+        {:ok, output} ->
           Logger.info("Successfully compiled Elm program Stage:#{inspect(ellm_program.stage)}")
-          Events.broadcast("elm_compiled", %{ellm_program | code: program_test})
 
           {:ok, %{ellm_program | code: program_test}}
 
@@ -709,8 +751,6 @@ defmodule Elmspark.Elmspark do
                 %{title: problem["title"], message: problem["message"]}
               end)
               |> Enum.flat_map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
-
-            Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error})
 
             {:error, %{ellm_program | error: decoded_error}}
           end

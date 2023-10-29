@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for elmspark on 2023-10-29T01:18:53-04:00
+# fly.toml app configuration file generated for elmspark on 2023-10-29T16:45:11-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -28,3 +28,7 @@ swap_size_mb = 512
     type = "connections"
     hard_limit = 1000
     soft_limit = 1000
+
+[mounts]
+  source="projects"
+  destination="/projects"

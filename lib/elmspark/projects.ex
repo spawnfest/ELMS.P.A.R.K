@@ -9,6 +9,7 @@ defmodule Elmspark.Projects do
   alias Elmspark.Projects.Project
   alias Elmspark.Elmspark.EllmProgram
   alias Elmspark.Elmspark.Blueprint
+  alias Elmspark.Elmspark.SparkServer
 
   @doc """
   Returns the list of projects.
@@ -43,9 +44,21 @@ defmodule Elmspark.Projects do
       from ep in EllmProgram,
         join: p in Project,
         on: p.id == ep.project_id,
-        where: p.id == ^project_id
+        where: p.id == ^project_id,
+        order_by: [desc: ep.inserted_at]
 
     Repo.all(query)
+  end
+
+  def retry_build(project_id) do
+    case get_project(project_id) do
+      nil ->
+        {:error, "Project not found"}
+
+      project ->
+        {:ok, {task, project}} = SparkServer.generate_app(project.blueprint_id)
+        {:ok, project}
+    end
   end
 
   @doc """
@@ -63,6 +76,7 @@ defmodule Elmspark.Projects do
 
   """
   def get_project!(id), do: Repo.get!(Project, id)
+  def get_project(id), do: Repo.get(Project, id)
 
   @doc """
   Creates a project.

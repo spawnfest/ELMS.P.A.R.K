@@ -47,7 +47,7 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
 
     case File.mkdir(working_dir) do
       :ok ->
-        System.cmd("sh", ["-c", "echo 'Y' | elm init"], cd: working_dir)
+        elm_init(working_dir)
         {:reply, {:ok, working_dir}, opts}
 
       {:error, e} ->
@@ -67,7 +67,7 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
 
     case File.mkdir(working_dir) do
       :ok ->
-        System.cmd("sh", ["-c", "echo 'Y' | elm init"], cd: working_dir)
+        elm_init(working_dir)
         {:reply, {:ok, working_dir}, opts}
 
       {:error, e} ->
@@ -145,5 +145,39 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     ["priv", "static", "assets", blueprint_id]
     |> Enum.concat(p)
     |> Path.join()
+  end
+
+  def elm_init(working_dir) do
+    File.write(Path.join(working_dir, "elm.json"), elm_json_contents())
+    File.mkdir(Path.join(working_dir, "src"))
+  end
+
+  def elm_json_contents() do
+    """
+    {
+        "type": "application",
+        "source-directories": [
+            "src"
+        ],
+        "elm-version": "0.19.1",
+        "dependencies": {
+            "direct": {
+                "elm/browser": "1.0.2",
+                "elm/core": "1.0.5",
+                "elm/html": "1.0.0"
+            },
+            "indirect": {
+                "elm/json": "1.1.3",
+                "elm/time": "1.0.0",
+                "elm/url": "1.0.0",
+                "elm/virtual-dom": "1.0.3"
+            }
+        },
+        "test-dependencies": {
+            "direct": {},
+            "indirect": {}
+        }
+    }
+    """
   end
 end
