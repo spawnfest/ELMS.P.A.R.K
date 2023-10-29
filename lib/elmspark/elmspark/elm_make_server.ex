@@ -57,11 +57,25 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     working_dir = working_directory(blueprint_id)
     path = working_directory(blueprint_id, ["src", "Main.elm"])
     File.write(path, contents)
-    args = ["make", "--output=main.js", "src/Main.elm"]
+    #args = ["make", "--output=main.js", "src/Main.elm"]
+    args = ["make", "src/Main.elm"]
 
     with {:ok, blah} <- Rambo.run("elm", args, cd: working_dir) do
-      Logger.info("Elm Make Run successful #{inspect(blah)}")
-      {:reply, {:ok, blah}, opts}
+      Logger.info("Gen JS Run successful #{inspect(blah)}")
+      output_path = working_directory(blueprint_id, ["index.html"])
+      release_dir = release_directory(blueprint_id)
+      if not File.dir?(release_dir) do
+        :ok = File.mkdir(release_dir)
+      end
+      release_path = release_directory(blueprint_id, ["index.html"])
+
+      case File.cp(output_path, release_path) do
+        :ok ->
+          {:reply, {:ok, blah}, opts}
+
+        {:error, err} ->
+          {:reply, {:error, err}, opts}
+      end
     else
       {:error, %Rambo{err: error}} ->
         Logger.info("Elm Make Failed run failed")
@@ -97,6 +111,12 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
 
   defp working_directory(blueprint_id, p \\ []) do
     ["projects", blueprint_id]
+    |> Enum.concat(p)
+    |> Path.join()
+  end
+
+  defp release_directory(blueprint_id, p \\ []) do
+    ["priv", "static", "assets", blueprint_id]
     |> Enum.concat(p)
     |> Path.join()
   end
