@@ -1,6 +1,7 @@
 defmodule ElmsparkWeb.ProgramViewerLive do
   use ElmsparkWeb, :live_view
   alias Elmspark.Elmspark.Events
+  alias Elmspark.Elmspark.EllmProgram
 
   def render(assigns) do
     ~H"""
@@ -12,6 +13,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
           - <%= event.name %>
           <div :if={event.name == "elm_compile_failed"}>
             <pre><%= event.payload.error %></pre>
+            <pre><%= EllmProgram.to_code(event.payload) %></pre>
           </div>
         </li>
       </ul>

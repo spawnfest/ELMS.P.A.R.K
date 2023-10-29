@@ -29,8 +29,9 @@ defmodule Elmspark.Elmspark do
       {:ok, result} ->
         do_attempt_with_many(result, rest, 0)
 
-      {:error, %EllmProgram{}= program} ->
+      {:error, %EllmProgram{} = program} ->
         do_attempt_with_many(program, [{fun, max_retries} | rest], attempt + 1)
+
       {:error, _} ->
         do_attempt_with_many(value, [{fun, max_retries} | rest], attempt)
     end
@@ -57,10 +58,11 @@ defmodule Elmspark.Elmspark do
 
   def gen_imports(blueprint) do
     available_modules = Elmspark.ElmDocumentationServer.available_modules()
+
     EllmProgram.new()
     |> EllmProgram.set_stage(:choose_imports)
     |> fetch_imports_from_llm(blueprint, available_modules)
-     |> dbg()
+    |> dbg()
   end
 
   def gen_model(blueprint, ellm_program) do
@@ -86,8 +88,6 @@ defmodule Elmspark.Elmspark do
     |> fetch_messages_from_llm()
     |> compile_elm_program()
     |> respond_to_feedback_with_llm
-
-
   end
 
   def gen_update(ellm_program) do
@@ -136,20 +136,29 @@ defmodule Elmspark.Elmspark do
   end
 
   defp fetch_imports_from_llm(%EllmProgram{} = ellm_program, blueprint, available_modules) do
-    globally_available_imports =  ellm_program.global_imports
+    globally_available_imports = ellm_program.global_imports
     additional_possibilities = available_modules -- globally_available_imports
-    globally_available_system_msg = LLM.system_message("The following modules are always globally available: #{Enum.join(globally_available_imports, "@@")}")
-    additional_system_msg = LLM.system_message("The additional modules are #{Enum.join(additional_possibilities, "@@")}.")
+
+    globally_available_system_msg =
+      LLM.system_message(
+        "The following modules are always globally available: #{Enum.join(globally_available_imports, "@@")}"
+      )
+
+    additional_system_msg =
+      LLM.system_message(
+        "The additional modules are #{Enum.join(additional_possibilities, "@@")}."
+      )
+
     msg = generate_imports(blueprint, &LLM.user_message/1)
     res = LLM.chat_completions([globally_available_system_msg, additional_system_msg, msg])
 
     case res do
       {:ok, %{choices: [%{message: %{content: selected_imports}}]}} ->
-       imports = String.split(selected_imports, "@@") -- ellm_program.global_imports
-        |> MapSet.new()
-        |> MapSet.intersection(MapSet.new(available_modules))
-        |> MapSet.to_list()
-        |> dbg()
+        imports =
+          (String.split(selected_imports, "@@") -- ellm_program.global_imports)
+          |> MapSet.new()
+          |> MapSet.intersection(MapSet.new(available_modules))
+          |> MapSet.to_list()
 
         {:ok, %{ellm_program | imports: imports}}
 
@@ -175,9 +184,9 @@ defmodule Elmspark.Elmspark do
     fetch_from_llm(ellm_program, &generate_update(&1, &2), :update)
   end
 
-   def respond_to_feedback_with_llm({:ok, idk}) do
-     {:ok, idk}
-   end
+  def respond_to_feedback_with_llm({:ok, idk}) do
+    {:ok, idk}
+  end
 
   # def respond_to_feedback_with_llm({:error, idk}) do
   #   # msg = generate_feedback(blueprint, &LLM.user_message/1)
@@ -193,12 +202,15 @@ defmodule Elmspark.Elmspark do
       {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
         %{ellm_program | model_alias: feedback}
         |> compile_elm_program()
+
       {:error, e} ->
         {:error, e}
     end
   end
-  
- def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_init_function} = ellm_program}) do
+
+  def respond_to_feedback_with_llm(
+        {:error, %EllmProgram{stage: :add_init_function} = ellm_program}
+      ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
@@ -206,11 +218,14 @@ defmodule Elmspark.Elmspark do
       {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
         %{ellm_program | init: feedback}
         |> compile_elm_program()
+
+      # Broadcast.event(:feedback_received, %{})
       {:error, e} ->
         {:error, e}
     end
   end
- def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_messages} = ellm_program}) do
+
+  def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_messages} = ellm_program}) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
@@ -218,12 +233,15 @@ defmodule Elmspark.Elmspark do
       {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
         %{ellm_program | messages: feedback}
         |> compile_elm_program()
+
       {:error, e} ->
         {:error, e}
     end
   end
 
- def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_update_function} = ellm_program}) do
+  def respond_to_feedback_with_llm(
+        {:error, %EllmProgram{stage: :add_update_function} = ellm_program}
+      ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
@@ -231,12 +249,15 @@ defmodule Elmspark.Elmspark do
       {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
         %{ellm_program | update: feedback}
         |> compile_elm_program()
+
       {:error, e} ->
         {:error, e}
     end
   end
 
- def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_view_function} = ellm_program}) do
+  def respond_to_feedback_with_llm(
+        {:error, %EllmProgram{stage: :add_view_function} = ellm_program}
+      ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
@@ -244,12 +265,11 @@ defmodule Elmspark.Elmspark do
       {:ok, %{choices: [%{message: %{content: feedback}}]}} ->
         %{ellm_program | view: feedback}
         |> compile_elm_program()
+
       {:error, e} ->
         {:error, e}
     end
   end
-
-
 
   defp fetch_view_from_llm(ellm_program) do
     fetch_from_llm(ellm_program, &generate_view(&1, &2), :view)
@@ -413,7 +433,7 @@ defmodule Elmspark.Elmspark do
     present.(message)
   end
 
-   def stage_task(%EllmProgram{stage: :add_model_alias} = program) do
+  def stage_task(%EllmProgram{stage: :add_model_alias} = program) do
     message = """
     Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
 
@@ -431,7 +451,8 @@ defmodule Elmspark.Elmspark do
       , size : Int
       }
     """
-  end 
+  end
+
   def stage_task(%EllmProgram{stage: :add_init_function} = program) do
     message = """
     Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
@@ -451,6 +472,7 @@ defmodule Elmspark.Elmspark do
       }
     """
   end
+
   def stage_task(%EllmProgram{stage: :add_messages} = program) do
     message = """
     Turn this list of messages: #{program.messages} into a Elm type alias called Msg. Each message should be on its own line.
@@ -468,7 +490,7 @@ defmodule Elmspark.Elmspark do
     Keep it on one line.
     """
   end
-  
+
   def stage_task(%EllmProgram{stage: :add_update_function} = program) do
     message = """
     Given the following model alias:
@@ -491,6 +513,7 @@ defmodule Elmspark.Elmspark do
 
     """
   end
+
   def stage_task(%EllmProgram{stage: :add_view_function} = program) do
     message = """
     Given the following model alias:
@@ -512,6 +535,7 @@ defmodule Elmspark.Elmspark do
             ]
     """
   end
+
   def generate_init(
         ellm_program,
         present
@@ -622,23 +646,24 @@ defmodule Elmspark.Elmspark do
 
           {:ok, %{ellm_program | code: program_test}}
 
-        {:error, e} -> 
+        {:error, e} ->
           Logger.error(
             "Elm Compile Failed #{inspect(ellm_program)} Stage:#{inspect(ellm_program.stage)}"
           )
-            with {:ok, decoded} <- e |> Jason.decode() do
-             [hd_error | _] =  Map.get(decoded, "errors")
 
-             decoded_error= 
-            Enum.map(hd_error["problems"], fn problem ->
-              %{title: problem["title"], message: problem["message"]}
-            end)
-            |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
-            |> dbg()
+          with {:ok, decoded} <- e |> Jason.decode() do
+            [hd_error | _] = Map.get(decoded, "errors")
 
-          Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error })
+            decoded_error =
+              Enum.map(hd_error["problems"], fn problem ->
+                %{title: problem["title"], message: problem["message"]}
+              end)
+              |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
+              |> dbg()
 
-          {:error, %{ellm_program | error: decoded_error}}
+            Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error})
+
+            {:error, %{ellm_program | error: decoded_error}}
           end
       end
     end

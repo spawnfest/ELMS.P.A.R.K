@@ -10,7 +10,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
     :stage,
     :code,
     :error,
-    global_imports: ["Basics", "Html", "Html.Attributes", "Html.Events", "Maybe"]
+    global_imports: ["Basics", "Browser", "Html", "Html.Attributes", "Html.Events", "Maybe"]
   ]
 
   def new() do
@@ -36,9 +36,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
       ) do
     """
     module Main exposing (main)
-
-    import Html exposing (Html)
-    import Browser
 
     #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
@@ -76,9 +73,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
     module Main exposing (main)
 
-    import Html exposing (Html)
-    import Browser
-
     #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
 
@@ -115,9 +109,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
       ) do
     """
     module Main exposing (main)
-
-    import Html exposing (Html)
-    import Browser
 
     #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
@@ -158,9 +149,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
     module Main exposing (main)
 
-    import Html exposing (Html)
-    import Browser
-
     #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
 
@@ -193,9 +181,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
     module Main exposing (main)
 
-    import Html exposing (Html)
-    import Browser
-
     #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
 
@@ -227,9 +212,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
       ) do
     """
     module Main exposing (main)
-
-    import Html exposing (Html)
-    import Browser
 
     #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
