@@ -1,5 +1,5 @@
 # ELMS.P.A.R.K
-
+![sector_elm](IMG_20231029_183141.jpg)
 ## Disclaimer
 This does not work every time and is not ready to generate code to be used in production. 
 ## Introduction
