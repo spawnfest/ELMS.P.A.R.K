@@ -1,33 +1,34 @@
 defmodule ElmsparkWeb.GalleryLive do
   use ElmsparkWeb, :live_view
 
-def render(assigns) do
-  ~H"""
-  <div class="p-8 min-h-screen flex flex-col items-center bg-gray-100">
-    <h1 class="text-4xl mb-4 px-6 py-3 rounded bg-blue-600 text-white shadow-lg">
-      Gallery
-    </h1>
-    <p class="text-lg mb-6">All the secret missions:</p>
-    <ul id="projects" phx-update="stream" class="list-decimal list-inside w-full">
-      <a
-        :for={{dom_id, project} <- @streams.projects}
-        id={dom_id}
-        href={~p"/projects/#{project.id}"}
-        class="block mb-2 hover:bg-gray-200 p-4 border-2 border-gray-300 rounded-lg transition shadow-sm"
-      >
-        <li class="flex items-center bg-white p-4 rounded-lg">
-          <p class="text-gray-800 text-xl font-medium"><%= project.blueprint.title %></p>
-        </li>
+  def render(assigns) do
+    ~H"""
+    <div class="p-8 min-h-screen flex flex-col items-center bg-green-100">
+      <h1 class="text-5xl mb-4 px-6 py-4 rounded bg-red-600 text-white shadow-xl transform hover:scale-105 transition-transform">
+        Sector E(LLM) Gallery
+      </h1>
+      <p class="text-xl mb-6 font-bold text-gray-700">Top Secret Missions:</p>
+      <ul id="projects" phx-update="stream" class="list-decimal list-inside w-full">
+        <a
+          :for={{dom_id, project} <- @streams.projects}
+          id={dom_id}
+          href={~p"/projects/#{project.id}"}
+          class="block mb-4 bg-white p-5 border-4 border-orange-500 rounded-xl transition-transform transform hover:scale-105 shadow-xl"
+        >
+          <li class="flex items-center space-x-4">
+            <span class="text-3xl">📁</span>
+            <p class="text-gray-800 text-xl font-bold"><%= project.blueprint.title %></p>
+          </li>
+        </a>
+      </ul>
+      <a href={~p"/projects/new"} class="mt-8">
+        <button class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-5 rounded-xl shadow-xl transform hover:scale-105 transition-transform">
+          Add New Blueprint
+        </button>
       </a>
-    </ul>
-    <a href={~p"/projects/new"} class="mt-6">
-      <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg">
-        New Mission
-      </button>
-    </a>
-  </div>
-  """
-end
+    </div>
+    """
+  end
 
   def mount(_params, _session, socket) do
     projects = Elmspark.Projects.list_compiled_projects()
