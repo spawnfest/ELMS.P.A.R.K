@@ -1,7 +1,5 @@
-# The static project data that the LLM is working with.
-projects
-
 # The directory Mix will write compiled artifacts to.
+_projects/
 /_build/
 
 # If you run "mix test --cover", coverage assets end up here.
