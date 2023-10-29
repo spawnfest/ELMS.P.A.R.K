@@ -1,5 +1,6 @@
 defmodule Elmspark.Elmspark.EllmProgram do
   defstruct [
+    :blueprint_id,
     :imports,
     :model_fields,
     :model_alias,
@@ -13,8 +14,8 @@ defmodule Elmspark.Elmspark.EllmProgram do
     global_imports: ["Basics", "Browser", "Html", "Html.Attributes", "Html.Events", "Maybe"]
   ]
 
-  def new() do
-    %__MODULE__{}
+  def new(blueprint_id) do
+    %__MODULE__{blueprint_id: blueprint_id}
   end
 
   def set_stage(%__MODULE__{} = program, stage) do
