@@ -2,6 +2,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
   use ElmsparkWeb, :live_view
   alias Elmspark.Elmspark.Events
   alias Elmspark.Elmspark.EllmProgram
+  alias Elmspark.Projects
 
   def render(assigns) do
     ~H"""
@@ -9,12 +10,11 @@ defmodule ElmsparkWeb.ProgramViewerLive do
       <div class="w-1/2">
         <.button>Retry</.button>
         <ul id="events" phx-update="stream">
-          <li :for={{dom_id, event} <- @streams.events} id={dom_id}>
-            <span><%= event.payload.stage %></span>
-            - <%= event.name %>
-            <div :if={event.name == "elm_compile_failed"} class="pr-4">
-              <pre><%= event.payload.error %></pre>
-              <pre><%= EllmProgram.to_code(event.payload) %></pre>
+          <li :for={{dom_id, program} <- @streams.programs} id={dom_id}>
+            <span><%= program.stage %></span>
+            <div :if={program.error} class="pr-4">
+              <pre><%= program.error %></pre>
+              <pre><%= EllmProgram.to_code(program) %></pre>
             </div>
           </li>
         </ul>
@@ -29,10 +29,19 @@ defmodule ElmsparkWeb.ProgramViewerLive do
     {:ok, socket |> assign(html: "") |> stream(:events, [])}
   end
 
+  def handle_params(%{"project_id" => project_id}, _params, socket) do
+    programs = Projects.get_programs(project_id)
+    {:noreply,
+     socket
+     |> assign(html: "")
+     |> stream(:programs, programs)
+     |> assign(project_id: project_id)}
+  end
+
   def handle_info({event_name, payload}, socket) do
+    IO.inspect({event_name, payload}, label: "Event")
     event = %{id: Ecto.UUID.generate(), name: event_name, payload: payload}
 
-    IO.inspect(payload, label: "PAYLOADDDDDD")
     {:noreply, socket |> assign(html: payload.code) |> stream_insert(:events, event)}
   end
 end

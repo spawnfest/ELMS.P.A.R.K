@@ -66,9 +66,7 @@ defmodule ElmsparkWeb.FormLive do
               <%= blueprint.works %>
             </div>
             <a :if={project_ready?(blueprint.id)} href={~p"/projects/#{blueprint.id}"}>
-              <.button
-                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm transition duration-200 transform hover:scale-105"
-              >
+              <.button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm transition duration-200 transform hover:scale-105">
                 View Project
               </.button>
             </a>
@@ -87,9 +85,12 @@ defmodule ElmsparkWeb.FormLive do
   end
 
   def handle_event("build_blueprint", %{"id" => id}, socket) do
-    SparkServer.generate_app(id)
-
-    {:noreply, redirect(socket, to: "/program_viewer")}
+    with {:ok, {task, project_id}} <- SparkServer.generate_app(id) do
+      {:noreply, redirect(socket, to: "/programs/#{project_id}")}
+    else
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event(

@@ -16,8 +16,8 @@ defmodule Elmspark.Elmspark.SparkServer do
 
   def handle_call({:generate_app_from_blueprint, blueprint_id}, _from, state) do
     case generate_app_from_blueprint(blueprint_id) do
-      {:ok, task} ->
-        {:reply, {:ok, task}, state}
+      {:ok, {task, project_id}} ->
+        {:reply, {:ok, {task, project_id}}, state}
 
       {:ok, app} ->
         {:reply, {:ok, app}, state}
@@ -36,7 +36,9 @@ defmodule Elmspark.Elmspark.SparkServer do
         # TODO: directly calling, and can throw errors.
         {:ok, project} = Elmspark.Projects.create_project(%{blueprint_id: blueprint_id})
         Elmspark.Elmspark.ElmMakeServer.new_project(project.id, blueprint.id)
-        {:ok, Task.async(fn -> Elmspark.Elmspark.gen_app(project.id, blueprint) end)}
+
+        {:ok,
+         {Task.async(fn -> Elmspark.Elmspark.gen_app(project.id, blueprint) end), project.id}}
     end
   end
 

@@ -20,11 +20,9 @@ defmodule ElmsparkWeb.Router do
   scope "/", ElmsparkWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-    get "/render", PageController, :show
-    live "/form", FormLive
-    live "/program_viewer", ProgramViewerLive
-    live "/gallery", GalleryLive
+    live "/", GalleryLive
+    live "/projects/new", FormLive
+    live "/programs/:project_id", ProgramViewerLive
     get "/projects/:id", ProjectController, :show
   end
 

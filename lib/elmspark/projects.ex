@@ -38,6 +38,16 @@ defmodule Elmspark.Projects do
     Repo.all(query)
   end
 
+  def get_programs(project_id) do
+    query =
+      from ep in EllmProgram,
+        join: p in Project,
+        on: p.id == ep.project_id,
+        where: p.id == ^project_id
+
+    Repo.all(query)
+  end
+
   @doc """
   Gets a single project.
 
