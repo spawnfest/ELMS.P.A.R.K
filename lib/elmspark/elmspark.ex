@@ -38,7 +38,7 @@ defmodule Elmspark.Elmspark do
   end
 
   defp do_attempt_with_many(value, [{fun, max_retries} | rest], {feedback_attempt, failures})
-       when attempt <= max_retries do
+       when feedback_attempt <= max_retries do
     case fun.(value) do
       {:ok, result} ->
         do_attempt_with_many(result, rest, {0, 0})
