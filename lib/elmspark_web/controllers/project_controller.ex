@@ -13,7 +13,7 @@ defmodule ElmsparkWeb.ProjectController do
     end
   end
 
-  defp release_directory(blueprint_id, p \\ []) do
+  defp release_directory(blueprint_id, p) do
     ["priv", "static", "assets", blueprint_id]
     |> Enum.concat(p)
     |> Path.join()

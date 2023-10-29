@@ -29,8 +29,8 @@ defmodule Elmspark.Projects do
     query =
       from p in Project,
         join: e in EllmProgram,
-        join: bl in Blueprint,
         on: p.id == e.project_id,
+        join: bl in Blueprint,
         on: p.blueprint_id == bl.id,
         preload: [:ellm_program, :blueprint],
         where: not is_nil(e.view) and is_nil(e.error),
@@ -56,7 +56,7 @@ defmodule Elmspark.Projects do
         {:error, "Project not found"}
 
       project ->
-        {:ok, {task, project}} = SparkServer.generate_app(project.blueprint_id)
+        {:ok, {_task, project}} = SparkServer.generate_app(project.blueprint_id)
         {:ok, project}
     end
   end
