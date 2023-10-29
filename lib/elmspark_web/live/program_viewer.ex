@@ -23,7 +23,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
 
         <ul id="events" phx-update="stream">
           <li
-            :for={{dom_id, program} <- @streams.programs}
+            :for={{_dom_id, program} <- @streams.programs}
             }
             class="my-2 p-4 bg-gray-50 rounded hover:bg-gray-200 transition"
             phx-click="select"
@@ -80,10 +80,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
     end
   end
 
-  def handle_info({event_name, payload}, socket) do
-    IO.inspect({event_name, payload}, label: "Event")
-    event = %{id: Ecto.UUID.generate(), name: event_name, payload: payload}
-
+  def handle_info({_event_name, payload}, socket) do
     {:noreply,
      socket |> assign(html: EllmProgram.to_code(payload)) |> stream_insert(:programs, payload)}
   end
