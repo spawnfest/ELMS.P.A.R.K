@@ -65,6 +65,13 @@ defmodule ElmsparkWeb.FormLive do
             <div class="text-gray-500 mt-2 mb-4">
               <%= blueprint.works %>
             </div>
+            <a :if={project_ready?(blueprint.id)} href={~p"/projects/#{blueprint.id}"}>
+              <.button
+                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm transition duration-200 transform hover:scale-105"
+              >
+                View Project
+              </.button>
+            </a>
             <.button
               phx-click="build_blueprint"
               phx-value-id={blueprint.id}
@@ -82,7 +89,7 @@ defmodule ElmsparkWeb.FormLive do
   def handle_event("build_blueprint", %{"id" => id}, socket) do
     SparkServer.generate_app(id)
 
-{:noreply, redirect(socket, to: "/program_viewer")}
+    {:noreply, redirect(socket, to: "/program_viewer")}
   end
 
   def handle_event(
@@ -113,5 +120,15 @@ defmodule ElmsparkWeb.FormLive do
     end
 
     {:noreply, socket}
+  end
+
+  defp release_directory(blueprint_id, p \\ []) do
+    ["priv", "static", "assets", blueprint_id]
+    |> Enum.concat(p)
+    |> Path.join()
+  end
+
+  defp project_ready?(blueprint_id) do
+    File.exists?(release_directory(blueprint_id, ["index.html"]))
   end
 end
