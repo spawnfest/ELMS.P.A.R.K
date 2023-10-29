@@ -76,7 +76,7 @@ RUN apt-get update -y && \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 RUN npm install -g elm elm-format
-RUN mkdir -p projects
+RUN mkdir -p _projects
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
