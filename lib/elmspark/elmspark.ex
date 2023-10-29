@@ -38,10 +38,10 @@ defmodule Elmspark.Elmspark do
     end
   end
 
-  def gen_app(blueprint) do
-    attempt_with_many(blueprint, [
+  def gen_app(project_id, blueprint) do
+    attempt_with_many(project_id, [
       # 0 retries for gen_imports
-      {&gen_imports/1, 0},
+      {&gen_imports(blueprint, &1), 0},
       # 3 retries for gen_model
       {&gen_model(blueprint, &1), 0},
       # 2 retries for gen_init
@@ -57,54 +57,108 @@ defmodule Elmspark.Elmspark do
     ])
   end
 
-  def gen_imports(blueprint) do
+  def gen_imports(blueprint, project_id) do
     available_modules = Elmspark.ElmDocumentationServer.available_modules()
 
-    EllmProgram.new(blueprint.id)
-    |> EllmProgram.set_stage(:choose_imports)
+    project_id
+    |> EllmProgram.new()
+    |> EllmProgram.set_stage("choose_imports")
     |> fetch_imports_from_llm(blueprint, available_modules)
-    |> dbg()
+    |> case do
+      {:ok, ellm_program} ->
+        ellm_program
+        |> EllmProgram.changeset(%{})
+        |> Repo.insert()
+
+      error ->
+        error
+    end
   end
 
   def gen_model(blueprint, ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(:add_model_alias)
+    |> EllmProgram.set_stage("add_model_alias")
     |> fetch_fields_from_llm(blueprint)
     |> convert_fields_to_elm_type_alias()
     |> compile_elm_program()
     |> respond_to_feedback_with_llm
+    |> case do
+      {:ok, ellm_program} ->
+        ellm_program
+        |> EllmProgram.changeset(%{})
+        |> Repo.insert()
+
+      error ->
+        error
+    end
   end
 
   def gen_init(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(:add_init_function)
+    |> EllmProgram.set_stage("add_init_function")
     |> fetch_init_from_llm()
     |> compile_elm_program()
     |> respond_to_feedback_with_llm
+    |> case do
+      {:ok, ellm_program} ->
+        ellm_program
+        |> EllmProgram.changeset(%{})
+        |> Repo.insert()
+
+      error ->
+        error
+    end
   end
 
   def gen_msg(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(:add_messages)
+    |> EllmProgram.set_stage("add_messages")
     |> fetch_messages_from_llm()
     |> compile_elm_program()
     |> respond_to_feedback_with_llm
+    |> case do
+      {:ok, ellm_program} ->
+        ellm_program
+        |> EllmProgram.changeset(%{})
+        |> Repo.insert()
+
+      error ->
+        error
+    end
   end
 
   def gen_update(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(:add_update_function)
+    |> EllmProgram.set_stage("add_update_function")
     |> fetch_update_from_llm()
     |> compile_elm_program()
     |> respond_to_feedback_with_llm
+    |> case do
+      {:ok, ellm_program} ->
+        ellm_program
+        |> EllmProgram.changeset(%{})
+        |> Repo.insert()
+
+      error ->
+        error
+    end
   end
 
   def gen_view(ellm_program) do
     ellm_program
-    |> EllmProgram.set_stage(:add_view_function)
+    |> EllmProgram.set_stage("add_view_function")
     |> fetch_view_from_llm()
     |> compile_elm_program()
     |> respond_to_feedback_with_llm
+    |> case do
+      {:ok, ellm_program} ->
+        ellm_program
+        |> EllmProgram.changeset(%{})
+        |> Repo.insert()
+
+      error ->
+        error
+    end
   end
 
   def gen_js(ellm_program) do
@@ -195,7 +249,9 @@ defmodule Elmspark.Elmspark do
   #   IO.inspect(idk)
   # end
 
-  def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_model_alias} = ellm_program}) do
+  def respond_to_feedback_with_llm(
+        {:error, %EllmProgram{stage: "add_model_alias"} = ellm_program}
+      ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
@@ -210,7 +266,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def respond_to_feedback_with_llm(
-        {:error, %EllmProgram{stage: :add_init_function} = ellm_program}
+        {:error, %EllmProgram{stage: "add_init_function"} = ellm_program}
       ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
@@ -226,7 +282,7 @@ defmodule Elmspark.Elmspark do
     end
   end
 
-  def respond_to_feedback_with_llm({:error, %EllmProgram{stage: :add_messages} = ellm_program}) do
+  def respond_to_feedback_with_llm({:error, %EllmProgram{stage: "add_messages"} = ellm_program}) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
 
@@ -241,7 +297,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def respond_to_feedback_with_llm(
-        {:error, %EllmProgram{stage: :add_update_function} = ellm_program}
+        {:error, %EllmProgram{stage: "add_update_function"} = ellm_program}
       ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
@@ -257,7 +313,7 @@ defmodule Elmspark.Elmspark do
   end
 
   def respond_to_feedback_with_llm(
-        {:error, %EllmProgram{stage: :add_view_function} = ellm_program}
+        {:error, %EllmProgram{stage: "add_view_function"} = ellm_program}
       ) do
     msg = generate_feedback(ellm_program, &LLM.user_message/1)
     res = LLM.chat_completions([msg])
@@ -434,7 +490,7 @@ defmodule Elmspark.Elmspark do
     present.(message)
   end
 
-  def stage_task(%EllmProgram{stage: :add_model_alias} = program) do
+  def stage_task(%EllmProgram{stage: "add_model_alias"} = program) do
     message = """
     Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
 
@@ -454,7 +510,7 @@ defmodule Elmspark.Elmspark do
     """
   end
 
-  def stage_task(%EllmProgram{stage: :add_init_function} = program) do
+  def stage_task(%EllmProgram{stage: "add_init_function"} = program) do
     message = """
     Turn this list of fields: #{program.model_fields} into a Elm type alias called Model. Each field should be on its own line.
 
@@ -474,7 +530,7 @@ defmodule Elmspark.Elmspark do
     """
   end
 
-  def stage_task(%EllmProgram{stage: :add_messages} = program) do
+  def stage_task(%EllmProgram{stage: "add_messages"} = program) do
     message = """
     Turn this list of messages: #{program.messages} into a Elm type alias called Msg. Each message should be on its own line.
 
@@ -492,7 +548,7 @@ defmodule Elmspark.Elmspark do
     """
   end
 
-  def stage_task(%EllmProgram{stage: :add_update_function} = program) do
+  def stage_task(%EllmProgram{stage: "add_update_function"} = program) do
     message = """
     Given the following model alias:
     #{program.model_alias}
@@ -515,7 +571,7 @@ defmodule Elmspark.Elmspark do
     """
   end
 
-  def stage_task(%EllmProgram{stage: :add_view_function} = program) do
+  def stage_task(%EllmProgram{stage: "add_view_function"} = program) do
     message = """
     Given the following model alias:
     #{program.model_alias}
@@ -629,7 +685,7 @@ defmodule Elmspark.Elmspark do
     present.(message)
   end
 
-  defp compile_elm_program(%EllmProgram{blueprint_id: blueprint_id} = ellm_program, opts \\ []) do
+  defp compile_elm_program(%EllmProgram{project_id: blueprint_id} = ellm_program, opts \\ []) do
     program_test = EllmProgram.to_code(ellm_program)
     output = Keyword.get(opts, :output, nil)
 

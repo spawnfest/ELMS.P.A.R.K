@@ -1,30 +1,62 @@
 defmodule Elmspark.Elmspark.EllmProgram do
-  defstruct [
-    :blueprint_id,
-    :imports,
-    :model_fields,
-    :model_alias,
-    :view,
-    :init,
-    :messages,
-    :update,
-    :stage,
-    :code,
-    :error,
-    global_imports: ["Basics", "Browser", "Html", "Html.Attributes", "Html.Events", "Maybe"]
-  ]
+  use Ecto.Schema
+  import Ecto.Changeset
 
-  def new(blueprint_id) do
-    %__MODULE__{blueprint_id: blueprint_id}
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
+  schema "ellm_programs" do
+    field :imports, {:array, :string}
+    field :model_fields, :string
+    field :model_alias, :string
+    field :view, :string
+    field :init, :string
+    field :messages, :string
+    field :update, :string
+    field :stage, :string, default: "choose_imports"
+    field :error, {:array, :string}
+    field :code, :string, virtual: true
+
+    field :global_imports, {:array, :string},
+      default: ["Basics", "Browser", "Html", "Html.Attributes", "Html.Events", "Maybe"]
+
+    belongs_to :blueprint, Blueprint
+    belongs_to :project, Project
+
+    timestamps(type: :utc_datetime)
+  end
+
+  @doc false
+  def changeset(blueprint, attrs) do
+    blueprint
+    |> cast(attrs, [
+      :imports,
+      :model_fields,
+      :model_alias,
+      :view,
+      :init,
+      :messages,
+      :update,
+      :stage,
+      :error,
+      :code,
+      :global_imports,
+      :blueprint_id,
+      :project_id
+    ])
+    |> validate_required([:project_id, :stage])
+  end
+
+  def new(project_id) do
+    %__MODULE__{project_id: project_id}
   end
 
   def set_stage(%__MODULE__{} = program, stage) do
-    Map.put(program, :stage, stage)
+    Map.put(program, :stage, stage) |> Map.put(:id, nil)
   end
 
   def to_code(
         %__MODULE__{
-          stage: :add_view_function,
+          stage: "add_view_function",
           view: view,
           update: update,
           model_alias: model_alias,
@@ -62,7 +94,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
   def to_code(
         %__MODULE__{
-          stage: :add_update_function,
+          stage: "add_update_function",
           update: update,
           model_alias: model_alias,
           init: init,
@@ -103,7 +135,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
           messages: messages,
           model_alias: model_alias,
           init: init,
-          stage: :add_messages,
+          stage: "add_messages",
           imports: imports,
           global_imports: global_imports
         } = _program
@@ -142,7 +174,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         %__MODULE__{
           model_alias: model_alias,
           init: init,
-          stage: :add_init_function,
+          stage: "add_init_function",
           imports: imports,
           global_imports: global_imports
         } = _program
@@ -176,7 +208,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
   end
 
   def to_code(
-        %__MODULE__{stage: :add_model_alias, imports: imports, global_imports: global_imports} =
+        %__MODULE__{stage: "add_model_alias", imports: imports, global_imports: global_imports} =
           _program
       ) do
     """
@@ -208,7 +240,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
   end
 
   def to_code(
-        %__MODULE__{stage: :add_imports, imports: imports, global_imports: global_imports} =
+        %__MODULE__{stage: "choose_imports", imports: imports, global_imports: global_imports} =
           _program
       ) do
     """
