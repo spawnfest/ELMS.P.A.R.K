@@ -162,18 +162,12 @@ defmodule Elmspark.Elmspark do
   end
 
   def gen_js(ellm_program) do
-    with {:ok, program} <-
-           ellm_program
-           |> compile_elm_program(output: "js") do
-      main_file = File.read!("main.js")
-      File.rm!("main.js")
-      random_file_name = "main.js"
-      path = Path.expand("./assets/js/main.js")
-      File.write!(path, main_file)
-      {:ok, program}
+    with {:ok, _idk} <-
+           ElmMakeServer.gen_js(ellm_program.project_id, EllmProgram.to_code(ellm_program)) do
+      {:ok, ellm_program}
     else
       _ ->
-        {:error, "Could not compile Elm to JS"}
+        {:error, ellm_program}
     end
   end
 
@@ -714,7 +708,7 @@ defmodule Elmspark.Elmspark do
               Enum.map(hd_error["problems"], fn problem ->
                 %{title: problem["title"], message: problem["message"]}
               end)
-              |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
+              |> Enum.flat_map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
 
             Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error})
 

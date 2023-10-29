@@ -7,6 +7,8 @@ defmodule Elmspark.Projects do
   alias Elmspark.Repo
 
   alias Elmspark.Projects.Project
+  alias Elmspark.Elmspark.EllmProgram
+  alias Elmspark.Elmspark.Blueprint
 
   @doc """
   Returns the list of projects.
@@ -19,6 +21,21 @@ defmodule Elmspark.Projects do
   """
   def list_projects do
     Repo.all(Project)
+  end
+
+  def list_compiled_projects do
+    # join on ellm_programs
+    query =
+      from p in Project,
+        join: e in EllmProgram,
+        join: bl in Blueprint,
+        on: p.id == e.project_id,
+        on: p.blueprint_id == bl.id,
+        preload: [:ellm_program, :blueprint],
+        where: not is_nil(e.view) and is_nil(e.error),
+        select: p
+
+    Repo.all(query)
   end
 
   @doc """

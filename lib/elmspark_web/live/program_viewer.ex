@@ -31,6 +31,7 @@ defmodule ElmsparkWeb.ProgramViewerLive do
 
   def handle_info({event_name, payload}, socket) do
     event = %{id: Ecto.UUID.generate(), name: event_name, payload: payload}
+
     IO.inspect(payload, label: "PAYLOADDDDDD")
     {:noreply, socket |> assign(html: payload.code) |> stream_insert(:events, event)}
   end

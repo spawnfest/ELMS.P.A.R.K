@@ -76,24 +76,24 @@ defmodule Elmspark.Elmspark.ElmMakeServer do
     end
   end
 
-  def handle_call({:gen_js, blueprint_id, contents}, _from, opts) do
+  def handle_call({:gen_js, project_id, contents}, _from, opts) do
     Logger.info("Generating JS")
-    working_dir = working_directory(blueprint_id)
-    path = working_directory(blueprint_id, ["src", "Main.elm"])
+    working_dir = working_directory(project_id)
+    path = working_directory(project_id, ["src", "Main.elm"])
     File.write(path, contents)
     # args = ["make", "--output=main.js", "src/Main.elm"]
     args = ["make", "src/Main.elm"]
 
     with {:ok, blah} <- Rambo.run("elm", args, cd: working_dir) do
       Logger.info("Gen JS Run successful #{inspect(blah)}")
-      output_path = working_directory(blueprint_id, ["index.html"])
-      release_dir = release_directory(blueprint_id)
+      output_path = working_directory(project_id, ["index.html"])
+      release_dir = release_directory(project_id)
 
       if not File.dir?(release_dir) do
         :ok = File.mkdir(release_dir)
       end
 
-      release_path = release_directory(blueprint_id, ["index.html"])
+      release_path = release_directory(project_id, ["index.html"])
 
       case File.cp(output_path, release_path) do
         :ok ->
