@@ -1,4 +1,5 @@
 defmodule Elmspark.Elmspark do
+  alias ExOpenAI.Components.Model
   alias __MODULE__.EllmProgram
   alias ElmSpark.LLM
   alias Elmspark.Elmspark.ElmMakeServer
@@ -296,10 +297,11 @@ defmodule Elmspark.Elmspark do
 
     available_functions_msg =
       """
-      You have access to the following Elm functions:
-      import Array exposing (Array, length, get)
-      -- length : Array a -> Int
-      -- get : Int -> Array a -> Maybe a
+      You must used qualified imports.
+
+      For example:
+        If you want to use the function get for the import Array do: Array.get
+        If you want to use the type Array for the import Array do: Array.Array
       """
       |> LLM.system_message()
 
@@ -523,7 +525,9 @@ defmodule Elmspark.Elmspark do
     type alias Model = { name : String }
     You would respond with:
 
-    { name = "Bob" }
+    init: Model
+    init = 
+      { name = "Bob" }
     """
 
     present.(message)

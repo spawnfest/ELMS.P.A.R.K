@@ -13,8 +13,6 @@ defmodule Elmspark.Elmspark.EllmProgram do
     global_imports: ["Basics", "Html", "Html.Attributes", "Html.Events", "Maybe"]
   ]
 
-
-
   def new() do
     %__MODULE__{}
   end
@@ -30,20 +28,20 @@ defmodule Elmspark.Elmspark.EllmProgram do
           update: update,
           model_alias: model_alias,
           init: init,
-          messages: messages
+          messages: messages,
+          imports: imports,
+          global_imports: global_imports
         } =
           _program
       ) do
-    init = String.replace(init, "\n", "")
-
     """
     module Main exposing (main)
 
-    import Html exposing (..)
-    import Html.Attributes exposing (..)
-    import Html.Events exposing (..)
-    import Array exposing (Array, length, get)
+    import Html exposing (Html)
     import Browser
+
+    #{global_imports_to_code(global_imports)}
+    #{imports_to_code(imports)}
 
     #{model_alias}
 
@@ -56,8 +54,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         , init = init
         }
 
-    init : Model
-    init = #{init}
+    #{init}
 
     #{update}
 
@@ -71,7 +68,9 @@ defmodule Elmspark.Elmspark.EllmProgram do
           update: update,
           model_alias: model_alias,
           init: init,
-          messages: messages
+          messages: messages,
+          imports: imports,
+          global_imports: global_imports
         } = _program
       ) do
     """
@@ -79,6 +78,9 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
     import Html exposing (Html)
     import Browser
+
+    #{global_imports_to_code(global_imports)}
+    #{imports_to_code(imports)}
 
     #{model_alias}
 
@@ -91,8 +93,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         , init = init
         }
 
-    init : Model
-    init = #{init}
+    #{init}
 
     #{update}
 
@@ -107,7 +108,9 @@ defmodule Elmspark.Elmspark.EllmProgram do
           messages: messages,
           model_alias: model_alias,
           init: init,
-          stage: :add_messages
+          stage: :add_messages,
+          imports: imports,
+          global_imports: global_imports
         } = _program
       ) do
     """
@@ -115,6 +118,9 @@ defmodule Elmspark.Elmspark.EllmProgram do
 
     import Html exposing (Html)
     import Browser
+
+    #{global_imports_to_code(global_imports)}
+    #{imports_to_code(imports)}
 
     #{model_alias}
 
@@ -128,8 +134,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         , init = init
         }
 
-    init : Model
-    init = #{init}
+    #{init}
 
     update : () -> Model -> Model
     update _ model =
@@ -142,13 +147,23 @@ defmodule Elmspark.Elmspark.EllmProgram do
   end
 
   def to_code(
-        %__MODULE__{model_alias: model_alias, init: init, stage: :add_init_function} = _program
+        %__MODULE__{
+          model_alias: model_alias,
+          init: init,
+          stage: :add_init_function,
+          imports: imports,
+          global_imports: global_imports
+        } = _program
       ) do
     """
     module Main exposing (main)
 
     import Html exposing (Html)
     import Browser
+
+    #{global_imports_to_code(global_imports)}
+    #{imports_to_code(imports)}
+
 
     #{model_alias}
 
@@ -159,8 +174,7 @@ defmodule Elmspark.Elmspark.EllmProgram do
         , init = init
         }
 
-    init : Model
-    init = #{init}
+    #{init}
 
     update : () -> Model -> Model
     update _ model =
@@ -172,12 +186,19 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-  def to_code(%__MODULE__{stage: :add_model_alias} = _program) do
+  def to_code(
+        %__MODULE__{stage: :add_model_alias, imports: imports, global_imports: global_imports} =
+          _program
+      ) do
     """
     module Main exposing (main)
 
     import Html exposing (Html)
     import Browser
+
+    #{global_imports_to_code(global_imports)}
+    #{imports_to_code(imports)}
+
 
     main : Program () () ()
     main =
@@ -200,13 +221,17 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
-
-  def to_code(%__MODULE__{stage: :add_imports, imports: imports} = _program) do
+  def to_code(
+        %__MODULE__{stage: :add_imports, imports: imports, global_imports: global_imports} =
+          _program
+      ) do
     """
     module Main exposing (main)
 
     import Html exposing (Html)
     import Browser
+
+    #{global_imports_to_code(global_imports)}
     #{imports_to_code(imports)}
 
     main : Program () () ()
@@ -230,9 +255,15 @@ defmodule Elmspark.Elmspark.EllmProgram do
     """
   end
 
+  defp global_imports_to_code(global_imports) do
+    global_imports
+    |> Enum.map(&"import #{&1} exposing (..)")
+    |> Enum.join("\n")
+  end
+
   defp imports_to_code(imports) do
     imports
-    |> Enum.map(& "import #{&1}")
+    |> Enum.map(&"import #{&1}")
     |> Enum.join("\n")
   end
 end
