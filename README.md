@@ -1,12 +1,18 @@
 # ELMS.P.A.R.K
 
+
 # TODOs:
 
 - Elm Documentation Server
   - Integrate
 
-- Offer the LLM a set of choices of modules that it thinks it will need.
+[x] Offer the LLM a set of choices of modules that it thinks it will need.
 - Collect imports (Also need to match aliases, etc.)
+
+- DynamicSupervisor manages a genserver for each project / blueprint.
+- Each project will have a directory that is used for doing work.
+  - Blueprint id?
+  - Spin up each project's genserver with the blueprint_id, via tuple
 
 
 CORE LOOP

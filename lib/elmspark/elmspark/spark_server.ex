@@ -35,6 +35,8 @@ defmodule Elmspark.Elmspark.SparkServer do
         {:error, "Blueprint not found"}
 
       blueprint ->
+        # TODO: directly calling, and can throw errors.
+        Elmspark.ElmMakeServer.new_project(blueprint.id)
         {:ok, Task.async(fn -> Elmspark.gen_app(blueprint) end)}
     end
   end

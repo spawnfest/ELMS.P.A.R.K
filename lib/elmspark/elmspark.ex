@@ -18,6 +18,7 @@ defmodule Elmspark.Elmspark do
     {:ok, value}
   end
 
+  # TODO: fix the infinte errors.
   defp do_attempt_with_many(_value, [{fun, _max_retries} = head | _rest], attempt)
        when attempt > _max_retries do
     {:error, {:max_retries_reached, fun}}
@@ -59,7 +60,7 @@ defmodule Elmspark.Elmspark do
   def gen_imports(blueprint) do
     available_modules = Elmspark.ElmDocumentationServer.available_modules()
 
-    EllmProgram.new()
+    EllmProgram.new(blueprint.id)
     |> EllmProgram.set_stage(:choose_imports)
     |> fetch_imports_from_llm(blueprint, available_modules)
     |> dbg()
@@ -623,23 +624,22 @@ defmodule Elmspark.Elmspark do
             [ input [ onInput ChangeName ] []
             , div [] [ text model.name ]
             ]
-
     """
 
     present.(message)
   end
 
-  defp compile_elm_program(%EllmProgram{} = ellm_program, opts \\ []) do
+  defp compile_elm_program(%EllmProgram{blueprint_id: blueprint_id} = ellm_program, opts \\ []) do
     program_test = EllmProgram.to_code(ellm_program)
     output = Keyword.get(opts, :output, nil)
 
     if output do
-      case ElmMakeServer.gen_js(program_test) do
+      case ElmMakeServer.gen_js(blueprint_id, program_test) do
         {:ok, _output} -> {:ok, %{ellm_program | code: program_test}}
         {:error, e} -> {:error, e}
       end
     else
-      case ElmMakeServer.make_elm(program_test) do
+      case ElmMakeServer.make_elm(blueprint_id, program_test) do
         {:ok, _output} ->
           Logger.info("Successfully compiled Elm program Stage:#{inspect(ellm_program.stage)}")
           Events.broadcast("elm_compiled", %{ellm_program | code: program_test})
