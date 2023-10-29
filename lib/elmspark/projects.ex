@@ -45,7 +45,7 @@ defmodule Elmspark.Projects do
         join: p in Project,
         on: p.id == ep.project_id,
         where: p.id == ^project_id,
-        order_by: [desc: ep.inserted_at]
+        order_by: [asc: ep.inserted_at]
 
     Repo.all(query)
   end

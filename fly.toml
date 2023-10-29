@@ -30,5 +30,5 @@ swap_size_mb = 512
     soft_limit = 1000
 
 [mounts]
-  source="_projects"
+  source="projects"
   destination="/_projects"

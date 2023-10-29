@@ -364,6 +364,10 @@ defmodule Elmspark.Elmspark do
     end
   end
 
+  def respond_to_feedback_with_llm({:error, e}) do
+    {:error, e}
+  end
+
   defp fetch_view_from_llm(ellm_program) do
     fetch_from_llm(ellm_program, &generate_view(&1, &2), :view)
   end
