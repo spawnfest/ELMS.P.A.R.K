@@ -38,4 +38,12 @@ defmodule Elmspark.Elmspark.SparkServer do
         {:ok, Task.async(fn -> Elmspark.gen_app(blueprint) end)}
     end
   end
+
+  def handle_info({ref, {:error, {:max_retries_reached, _fun}}}, state) do
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _, :process, _, _}, state) do
+    {:noreply, state}
+  end
 end

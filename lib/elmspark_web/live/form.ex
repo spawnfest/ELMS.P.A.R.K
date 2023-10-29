@@ -82,7 +82,7 @@ defmodule ElmsparkWeb.FormLive do
   def handle_event("build_blueprint", %{"id" => id}, socket) do
     SparkServer.generate_app(id)
 
-    {:noreply, socket}
+{:noreply, redirect(socket, to: "/program_viewer")}
   end
 
   def handle_event(

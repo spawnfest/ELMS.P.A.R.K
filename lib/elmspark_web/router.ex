@@ -23,6 +23,7 @@ defmodule ElmsparkWeb.Router do
     get "/", PageController, :home
     get "/render", PageController, :show
     live "/form", FormLive
+    live "/program_viewer", ProgramViewerLive
   end
 
   # Other scopes may use custom stacks.

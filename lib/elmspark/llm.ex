@@ -22,4 +22,7 @@ defmodule ElmSpark.LLM do
   def user_message(msg) do
     %{role: "user", content: msg}
   end
+  def system_message(msg) do
+    %{role: "system", content: msg}
+  end
 end
