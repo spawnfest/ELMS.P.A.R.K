@@ -63,7 +63,6 @@ defmodule Elmspark.Elmspark do
     EllmProgram.new(blueprint.id)
     |> EllmProgram.set_stage(:choose_imports)
     |> fetch_imports_from_llm(blueprint, available_modules)
-    |> dbg()
   end
 
   def gen_model(blueprint, ellm_program) do
@@ -659,7 +658,6 @@ defmodule Elmspark.Elmspark do
                 %{title: problem["title"], message: problem["message"]}
               end)
               |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
-              |> dbg()
 
             Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error})
 

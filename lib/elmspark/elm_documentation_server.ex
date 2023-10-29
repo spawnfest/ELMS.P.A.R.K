@@ -33,18 +33,24 @@ defmodule Elmspark.ElmDocumentationServer do
   end
 
   def load_elm_documentation() do
-    renames = fn %{values: values, comment: comment} = data -> 
-      %{functions: Enum.map(values, fn %{comment: comment, name: name, type: type} -> %{name: name, type: type, description: comment} end),
-      description: comment
+    renames = fn %{values: values, comment: comment} = data ->
+      %{
+        functions:
+          Enum.map(values, fn %{comment: comment, name: name, type: type} ->
+            %{name: name, type: type, description: comment}
+          end),
+        description: comment
       }
     end
 
-    module_map = "elm_definitions/core.json"
-    |> Path.expand()
-    |> File.read!()
-    |> Jason.decode!(keys: :atoms)
-    |> Enum.map(fn %{name: name} = available_module -> {name, renames.(available_module)} end)
-    |> Map.new()
+    module_map =
+      :code.priv_dir(:elmspark)
+      |> Path.join(["static", "/elm_definitions/core.json"])
+      |> Path.expand()
+      |> File.read!()
+      |> Jason.decode!(keys: :atoms)
+      |> Enum.map(fn %{name: name} = available_module -> {name, renames.(available_module)} end)
+      |> Map.new()
 
     Logger.info("loaded")
     module_map
