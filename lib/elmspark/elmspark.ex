@@ -11,7 +11,7 @@ defmodule Elmspark.Elmspark do
   require Logger
 
   def attempt_with_many(value, fun_with_retry_list) when is_list(fun_with_retry_list) do
-    do_attempt_with_many(value, fun_with_retry_list, 0)
+    do_attempt_with_many(value, fun_with_retry_list, {0, 0})
   end
 
   defp do_attempt_with_many(value, [], _attempt) do
@@ -644,7 +644,7 @@ defmodule Elmspark.Elmspark do
     You would respond with:
 
     init: Model
-    init = 
+    init =
       { name = "Bob" }
     """
 
