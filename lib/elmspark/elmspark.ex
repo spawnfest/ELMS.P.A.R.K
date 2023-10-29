@@ -715,7 +715,6 @@ defmodule Elmspark.Elmspark do
                 %{title: problem["title"], message: problem["message"]}
               end)
               |> Enum.map(fn x -> Enum.filter(x.message, fn x -> not is_map(x) end) end)
-              |> dbg()
 
             Events.broadcast("elm_compile_failed", %{ellm_program | error: decoded_error})
 
