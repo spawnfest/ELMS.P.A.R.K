@@ -51,6 +51,9 @@ defmodule Elmspark.Elmspark.SparkServer do
     {:noreply, state}
   end
 
+  def handle_info({_ref, {:error, {:max_failures_reached, _fun}}}, state) do
+    {:noreply, state}
+  end
   def handle_info({:DOWN, _, :process, _, _}, state) do
     {:noreply, state}
   end
